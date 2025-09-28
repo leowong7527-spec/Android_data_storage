@@ -2,19 +2,19 @@
   {
     "name": "Alice",
     "author": "abc",
-    "content": "Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...",
-    "tag": "Fantasy","Fantasy","Fantasy","Fantasy"
+    "content": "Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...Once upon a time, Alice discovered a portal to a magical world...",
+    "tag": ["Fantasy", "Adventure", "Magic", "Classic"]
   },
   {
     "name": "Bob",
     "author": "def",
     "content": "Bob always dreamed of exploring the deep sea...",
-    "tag": "Adventure"
+    "tag": ["Adventure"]
   },
   {
     "name": "Charlie",
     "author": "ghi",
     "content": "Charlie faced challenges that would break most...",
-    "tag": "Inspiration"
+    "tag": ["Inspiration"]
   }
 ]

@@ -44,29 +44,47 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     JSONObject clickedObj = booksArray.getJSONObject(position);
 
-                    // 🔍 Log which item was clicked
-                    Log.d("BOOK_CLICK", "Item clicked at position: " + position);
-                    Log.d("BOOK_CLICK", "Name: " + clickedObj.optString("name"));
-                    Log.d("BOOK_CLICK", "Author: " + clickedObj.optString("author"));
-                    Log.d("BOOK_CLICK", "Tag: " + clickedObj.optString("tag"));
-                    Log.d("BOOK_CLICK", "Content: " + clickedObj.optString("content"));
+                    String name = clickedObj.optString("name");
+                    String author = clickedObj.optString("author");
+                    String content = clickedObj.optString("content");
+
+                    // ✅ Handle both single string and array for "tag"
+                    String tagValue = "";
+                    if (clickedObj.has("tag")) {
+                        Object tagObj = clickedObj.get("tag");
+                        if (tagObj instanceof JSONArray) {
+                            JSONArray tagArray = (JSONArray) tagObj;
+                            ArrayList<String> tags = new ArrayList<>();
+                            for (int j = 0; j < tagArray.length(); j++) {
+                                tags.add(tagArray.optString(j));
+                            }
+                            tagValue = String.join(", ", tags); // join multiple tags
+                        } else {
+                            tagValue = clickedObj.optString("tag", "General");
+                        }
+                    } else {
+                        tagValue = "General";
+                    }
+
+                    // 🔍 Log what we’re passing
+                    Log.d("BOOK_CLICK", "Name: " + name);
+                    Log.d("BOOK_CLICK", "Author: " + author);
+                    Log.d("BOOK_CLICK", "Tag(s): " + tagValue);
+                    Log.d("BOOK_CLICK", "Content: " + content);
 
                     Intent intent = new Intent(MainActivity.this, BookDetailActivity.class);
-                    intent.putExtra("name", clickedObj.optString("name"));
-                    intent.putExtra("author", clickedObj.optString("author"));
-                    intent.putExtra("content", clickedObj.optString("content"));
-                    intent.putExtra("tag", clickedObj.optString("tag"));
+                    intent.putExtra("name", name);
+                    intent.putExtra("author", author);
+                    intent.putExtra("content", content);
+                    intent.putExtra("tag", tagValue);
                     startActivity(intent);
-
-                    Log.d("BOOK_CLICK", "Intent started for BookDetailActivity");
 
                 } catch (Exception e) {
                     Log.e("BOOK_CLICK", "Error handling item click", e);
                 }
-            } else {
-                Log.w("BOOK_CLICK", "booksArray is null, cannot open details");
             }
         });
+
     }
 
     private void fetchJson() {
@@ -113,4 +131,5 @@ public class MainActivity extends AppCompatActivity {
             Log.e("JSON_PARSE", "Error parsing JSON", e);
         }
     }
+
 }
