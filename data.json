@@ -1,5 +1,20 @@
 [
-  { "name": "Alice", "author": "abc" },
-  { "name": "Bob", "author": "def" },
-  { "name": "Charlie", "author": "ghi" }
+  {
+    "name": "Alice",
+    "author": "abc",
+    "content": "Once upon a time, Alice discovered a portal to a magical world...",
+    "tag": "Fantasy"
+  },
+  {
+    "name": "Bob",
+    "author": "def",
+    "content": "Bob always dreamed of exploring the deep sea...",
+    "tag": "Adventure"
+  },
+  {
+    "name": "Charlie",
+    "author": "ghi",
+    "content": "Charlie faced challenges that would break most...",
+    "tag": "Inspiration"
+  }
 ]
