@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> userList = new ArrayList<>();
     ArrayAdapter<String> adapter;
 
-    String jsonUrl = "https://raw.githubusercontent.com/yourusername/yourrepo/main/data.json";
+    String jsonUrl = "https://raw.githubusercontent.com/LEO7526/Android_data_storage/main/data.json";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +58,8 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
                 String name = obj.getString("name");
-                int age = obj.getInt("age");
-                userList.add(name + " - Age: " + age);
+                String author = obj.getString("author");
+                userList.add(name + " - Author: " + author);
             }
             adapter.notifyDataSetChanged();
         } catch (Exception e) {
