@@ -27,9 +27,9 @@ public class BookDetailActivity extends AppCompatActivity {
         Log.d("BOOK_DETAIL", "Received tag: " + tag);
         Log.d("BOOK_DETAIL", "Received content: " + content);
 
-        String details = "📖 " + name +
-                "\n👤 Author: " + author +
-                "\n🏷️ Tag: " + tag +
+        String details = "Book name: " + name +
+                "\n Author: " + author +
+                "\n Tag: " + tag +
                 "\n\n" + content;
 
         bookDetailText.setText(details);
