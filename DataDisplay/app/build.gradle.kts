@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.constraintlayout)
 
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
