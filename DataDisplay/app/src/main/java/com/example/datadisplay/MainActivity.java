@@ -34,7 +34,8 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> userList = new ArrayList<>();
     ArrayAdapter<String> adapter;
 
-    String jsonUrl = "https://raw.githubusercontent.com/LEO7526/Android_data_storage/main/data.json";
+    String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json";
+
 
     JSONArray booksArray;
     FlexboxLayout tagContainer;
