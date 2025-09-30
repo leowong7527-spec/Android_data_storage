@@ -1,0 +1,59 @@
+{
+  "categories": [
+    {
+      "name": "Anime",
+      "folders": [
+        {
+          "name": "FGO COS JVID写真 源赖光僵尸",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg",
+            "image_2.jpg"
+          ]
+        },
+        {
+          "name": "地狱吹雪",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg"
+          ]
+        },
+		{
+          "name": "NieR COS 美艳 2B",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nature",
+      "folders": [
+        {
+          "name": "Landscapes",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg"
+          ]
+        },
+        {
+          "name": "Wildlife",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg",
+            "image_2.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cosplay",
+      "folders": [
+        {
+          
+        }
+      ]
+    }
+  ]
+}
