@@ -27,6 +27,8 @@
         }
       ]
     },
+	
+	
     {
       "name": "Nature",
       "folders": [
@@ -47,11 +49,31 @@
         }
       ]
     },
+	
+	
     {
-      "name": "Cosplay",
+      "name": "Asian",
       "folders": [
         {
-          
+          "name": "asian1",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg",
+            "image_2.jpg"
+          ]
+        }
+      ]
+    },
+	{
+      "name": "Non-Asian",
+      "folders": [
+        {
+          "name": "non-asian1",
+          "images": [
+            "image_0.jpg",
+            "image_1.jpg",
+            "image_2.jpg"
+          ]
         }
       ]
     }
