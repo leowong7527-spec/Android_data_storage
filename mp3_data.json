@@ -8,11 +8,11 @@
           "files": [
             {
               "title": "Morning_Update",
-              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/News/World/sample-3s.mp3"
+              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/News/world/sample-3s.mp3"
             },
             {
               "title": "Evening_Brief",
-              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/News/World/sample-6s.mp3"
+              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/News/world/sample-6s.mp3"
             }
           ]
         },
@@ -21,7 +21,7 @@
           "files": [
             {
               "title": "HK_Traffic",
-              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/News/Local/sample-9s.mp3"
+              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/News/local/sample-9s.mp3"
             }
           ]
         }
@@ -35,7 +35,7 @@
           "files": [
             {
               "title": "Smooth_Sax",
-              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Music/Jazz/sample-12s.mp3"
+              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Music/jazz/sample-12s.mp3"
             }
           ]
         }
