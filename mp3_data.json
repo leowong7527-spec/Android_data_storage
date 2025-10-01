@@ -6,14 +6,23 @@
         {
           "name": "World",
           "files": [
-            { "title": "Morning_Update", "path": "news/world/sample-3s.mp3" },
-            { "title": "Evening_Brief", "path": "news/world/sample-6s.mp3" }
+            {
+              "title": "Morning_Update",
+              "path": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+            },
+            {
+              "title": "Evening_Brief",
+              "path": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+            }
           ]
         },
         {
           "name": "Local",
           "files": [
-            { "title": "HK_Traffic", "path": "news/local/sample-9s.mp3" }
+            {
+              "title": "HK_Traffic",
+              "path": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+            }
           ]
         }
       ]
@@ -24,7 +33,10 @@
         {
           "name": "Jazz",
           "files": [
-            { "title": "Smooth_Sax", "path": "music/jazz/sample-12s.mp3" }
+            {
+              "title": "Smooth_Sax",
+              "path": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"
+            }
           ]
         }
       ]
