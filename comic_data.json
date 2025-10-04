@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "name": "Full-color Korean Comics",
+      "name": "全彩韩漫",
       "folders": [
         {
           "name": "繼母與繼姐 第1~3話",
@@ -521,7 +521,7 @@
       ]
     },
     {
-      "name": "Full-color Chinese Comics",
+      "name": "中文彩漫",
       "folders": [
         {
           "name": "",
@@ -530,7 +530,7 @@
       ]
     },
     {
-      "name": "Chinese Comics",
+      "name": "中文漫画",
       "folders": [
         {
           "name": "",
@@ -539,7 +539,7 @@
       ]
     },
     {
-      "name": "Chinese Anime Comics",
+      "name": "国漫",
       "folders": [
         {
           "name": "",
@@ -557,7 +557,7 @@
       ]
     },
     {
-      "name": "AI Generated",
+      "name": "AI",
       "folders": [
         {
           "name": "",

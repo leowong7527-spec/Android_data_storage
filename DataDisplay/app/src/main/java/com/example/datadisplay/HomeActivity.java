@@ -32,9 +32,12 @@ public class HomeActivity extends AppCompatActivity {
     // Keep JSON in memory for reuse
     private String cachedMp3JsonString;
     private String cachedBookJsonString;
+    private String cachedComicJsonString;
 
     private boolean isMp3DownloadComplete = false;
     private boolean isBookDownloadComplete = false;
+
+    private boolean isComicDownloadComplete = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +61,7 @@ public class HomeActivity extends AppCompatActivity {
         // Load from cache first
         cachedMp3JsonString = loadJsonFromCache("mp3_data.json");
         cachedBookJsonString = loadJsonFromCache("data.json");
+        cachedComicJsonString = loadJsonFromCache("comic_data.json");
 
         // Download in background
         downloadJsonInBackground(
@@ -65,6 +69,8 @@ public class HomeActivity extends AppCompatActivity {
                 "mp3_data.json",
                 true
         );
+
+        //book
         downloadJsonInBackground(
                 "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json",
                 "data.json",
@@ -73,7 +79,7 @@ public class HomeActivity extends AppCompatActivity {
 
         downloadJsonInBackground(
                 "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json",
-                "data.json",
+                "comic_data.json",
                 false
         );
 
@@ -90,7 +96,10 @@ public class HomeActivity extends AppCompatActivity {
                 startActivity(new Intent(this, PhotoCategoryActivity.class));
             } else if (id == R.id.nav_mp3) {
                 handleMp3Navigation();
+            }else if (id == R.id.nav_comics) {
+                handleComicNavigation();
             }
+
             return true;
         });
     }
@@ -111,23 +120,31 @@ public class HomeActivity extends AppCompatActivity {
                 String jsonString = builder.toString();
                 saveJsonToCache(filename, jsonString);
 
-                if (isMp3) {
+                // ✅ Distinguish between MP3, Book, and Comic
+                if ("mp3_data.json".equals(filename)) {
                     cachedMp3JsonString = jsonString;
                     isMp3DownloadComplete = true;
-                } else {
+                } else if ("data.json".equals(filename)) {
                     cachedBookJsonString = jsonString;
                     isBookDownloadComplete = true;
+                } else if ("comic_data.json".equals(filename)) {
+                    cachedComicJsonString = jsonString;
+                    isComicDownloadComplete = true;
                 }
 
                 Log.d(TAG, filename + " download complete and cached.");
 
             } catch (Exception e) {
                 Log.e(TAG, "Error downloading " + filename, e);
-                if (isMp3) {
+
+                if ("mp3_data.json".equals(filename)) {
                     isMp3DownloadComplete = true;
-                } else {
+                } else if ("data.json".equals(filename)) {
                     isBookDownloadComplete = true;
+                } else if ("comic_data.json".equals(filename)) {
+                    isComicDownloadComplete = true;
                 }
+
                 runOnUiThread(() ->
                         Toast.makeText(HomeActivity.this, "Error downloading " + filename, Toast.LENGTH_SHORT).show());
             }
@@ -151,6 +168,20 @@ public class HomeActivity extends AppCompatActivity {
     private void handleBookNavigation() {
         Intent intent = new Intent(HomeActivity.this, BookActivity.class);
         startActivity(intent); // no extras needed
+    }
+
+    private void handleComicNavigation() {
+        if (cachedComicJsonString != null && !cachedComicJsonString.isEmpty()) {
+            Intent intent = new Intent(HomeActivity.this, ComicCategoryActivity.class);
+            intent.putExtra("json", cachedComicJsonString);
+            startActivity(intent);
+        } else {
+            if (isComicDownloadComplete) {
+                Toast.makeText(this, "No comic data available.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Loading comic data... Please wait.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void saveJsonToCache(String filename, String json) {

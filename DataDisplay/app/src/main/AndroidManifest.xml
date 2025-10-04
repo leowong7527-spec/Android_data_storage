@@ -14,6 +14,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DataDisplay">
         <activity
+            android:name=".ComicListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ComicFolderActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ComicCategoryActivity"
+            android:exported="false" />
+        <activity
             android:name=".RadioDetailActivity"
             android:exported="false" />
         <activity
