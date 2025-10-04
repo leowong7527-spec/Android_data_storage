@@ -71,6 +71,12 @@ public class HomeActivity extends AppCompatActivity {
                 false
         );
 
+        downloadJsonInBackground(
+                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json",
+                "data.json",
+                false
+        );
+
         // Navigation drawer clicks
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
