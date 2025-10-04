@@ -17,16 +17,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.material.navigation.NavigationView;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,8 +33,6 @@ public class BookActivity extends AppCompatActivity {
     ListView listView;
     ArrayList<String> userList = new ArrayList<>();
     ArrayAdapter<String> adapter;
-
-    String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json";
 
     JSONArray booksArray;
     FlexboxLayout tagContainer;
@@ -59,7 +54,13 @@ public class BookActivity extends AppCompatActivity {
         adapter = new ArrayAdapter<>(this, R.layout.list_item, userList);
         listView.setAdapter(adapter);
 
-        fetchJson();
+        // ✅ Get JSON string from HomeActivity
+        String jsonData = loadJsonFromCache("data.json");
+        if (jsonData != null && !jsonData.isEmpty()) {
+            parseJson(jsonData);
+        } else {
+            Log.e("BookActivity", "No JSON data received");
+        }
 
         // Toggle show/hide tags
         toggleTagsButton.setOnClickListener(v -> {
@@ -82,14 +83,12 @@ public class BookActivity extends AppCompatActivity {
                     String author = clickedObj.optString("author");
                     String content = clickedObj.optString("content");
 
-                    // ✅ Detect hash vs UTF-8
                     if (looksLikeHash(content)) {
                         content = "[HASH] " + content;
                     } else {
                         content = content.replace("\\n", "\n");
                     }
 
-                    // Handle both single string and array for "tag"
                     String tagValue = "";
                     if (clickedObj.has("tag")) {
                         Object tagObj = clickedObj.get("tag");
@@ -107,11 +106,6 @@ public class BookActivity extends AppCompatActivity {
                         tagValue = "General";
                     }
 
-                    Log.d("BOOK_CLICK", "Name: " + name);
-                    Log.d("BOOK_CLICK", "Author: " + author);
-                    Log.d("BOOK_CLICK", "Tag(s): " + tagValue);
-                    Log.d("BOOK_CLICK", "Content: " + content);
-
                     Intent intent = new Intent(BookActivity.this, BookDetailActivity.class);
                     intent.putExtra("name", name);
                     intent.putExtra("author", author);
@@ -125,7 +119,6 @@ public class BookActivity extends AppCompatActivity {
             }
         });
 
-
         DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
         NavigationView navigationView = findViewById(R.id.navigationView);
 
@@ -138,47 +131,22 @@ public class BookActivity extends AppCompatActivity {
             } else if (id == R.id.nav_photos) {
                 startActivity(new Intent(this, PhotoActivity.class));
             } else if (id == R.id.nav_settings) {
-
-        }
+                // TODO: implement settings
+            }
             drawerLayout.closeDrawers();
             return true;
         });
     }
 
-
-    private void fetchJson() {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(jsonUrl).build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    String jsonData = response.body().string();
-                    runOnUiThread(() -> parseJson(jsonData));
-                }
-            }
-        });
-    }
-
     private void parseJson(String jsonData) {
-        Log.d("JSON_PARSE", "Starting to parse JSON data...");
         try {
             booksArray = new JSONArray(jsonData);
-            Log.d("JSON_PARSE", "JSONArray length: " + booksArray.length());
-
             userList.clear();
             Set<String> uniqueTags = new HashSet<>();
 
             for (int i = 0; i < booksArray.length(); i++) {
                 JSONObject obj = booksArray.getJSONObject(i);
                 String name = obj.optString("name", "Unknown");
-                String author = obj.optString("author", "N/A");
 
                 // Collect tags
                 if (obj.has("tag")) {
@@ -205,7 +173,6 @@ public class BookActivity extends AppCompatActivity {
         }
     }
 
-
     private String limitWords(String text, int maxWords) {
         String[] words = text.split("\\s+");
         if (words.length <= maxWords) return text;
@@ -215,6 +182,7 @@ public class BookActivity extends AppCompatActivity {
         }
         return sb.toString().trim() + "...";
     }
+
     private void setupTags(Set<String> tags) {
         tagContainer.removeAllViews();
 
@@ -222,8 +190,6 @@ public class BookActivity extends AppCompatActivity {
             Button tagButton = new Button(this);
             tagButton.setText(tag);
             tagButton.setAllCaps(false);
-
-            // Initial background color
             tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
 
             FlexboxLayout.LayoutParams params =
@@ -236,10 +202,10 @@ public class BookActivity extends AppCompatActivity {
             tagButton.setOnClickListener(v -> {
                 if (selectedTags.contains(tag)) {
                     selectedTags.remove(tag);
-                    tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY)); // Unselected
+                    tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
                 } else {
                     selectedTags.add(tag);
-                    tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.CYAN)); // Selected
+                    tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.CYAN));
                 }
                 filterBooksByTags();
             });
@@ -299,7 +265,6 @@ public class BookActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-
     private void showAllBooks() {
         userList.clear();
         for (int i = 0; i < booksArray.length(); i++) {
@@ -311,15 +276,33 @@ public class BookActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    // ✅ Helper: detect if string looks like a hash
+    // Helper: detect if string looks like a hash
     private boolean looksLikeHash(String s) {
         return s != null &&
                 (
-                        // Hexadecimal hashes (MD5 = 32 chars, SHA‑1 = 40 chars, SHA‑256 = 64 chars)
-                        s.matches("^[a-fA-F0-9]{32,64}$")
-                                ||
-                                // Base64‑like strings (commonly 20+ chars, letters/numbers/+/=)
-                                s.matches("^[A-Za-z0-9+/=]{20,}$")
+                        s.matches("^[a-fA-F0-9]{32,64}$") ||        // Hex (MD5/SHA-1/SHA-256)
+                                s.matches("^[A-Za-z0-9+/=]{20,}$")          // Base64-like
                 );
+    }
+
+
+    private String loadJsonFromCache(String filename) {
+        try {
+            File jsonFile = new File(getCacheDir(), filename);
+            if (!jsonFile.exists()) return null;
+
+            FileInputStream fis = new FileInputStream(jsonFile);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line);
+            }
+            reader.close();
+            return builder.toString();
+        } catch (Exception e) {
+            Log.e("BookActivity", "Error loading JSON from cache", e);
+            return null;
+        }
     }
 }

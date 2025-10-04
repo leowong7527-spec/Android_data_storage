@@ -13,10 +13,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,8 +30,11 @@ public class HomeActivity extends AppCompatActivity {
     private ActionBarDrawerToggle drawerToggle;
 
     // Keep JSON in memory for reuse
-    private String cachedJsonString;
-    private boolean isDownloadComplete = false; // Indicates if the download attempt has finished
+    private String cachedMp3JsonString;
+    private String cachedBookJsonString;
+
+    private boolean isMp3DownloadComplete = false;
+    private boolean isBookDownloadComplete = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,20 +55,29 @@ public class HomeActivity extends AppCompatActivity {
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
 
-        // 🔹 Try to load from cache first
-        loadCachedJson();
+        // Load from cache first
+        cachedMp3JsonString = loadJsonFromCache("mp3_data.json");
+        cachedBookJsonString = loadJsonFromCache("data.json");
 
-        // 🔹 Download JSON in background (will update cache)
-        // This runs in a separate thread and does not block the UI.
-        downloadJsonInBackground();
+        // Download in background
+        downloadJsonInBackground(
+                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_data.json",
+                "mp3_data.json",
+                true
+        );
+        downloadJsonInBackground(
+                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json",
+                "data.json",
+                false
+        );
 
-        // 🔹 Navigation drawer clicks
+        // Navigation drawer clicks
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 drawerLayout.closeDrawers();
             } else if (id == R.id.nav_books) {
-                startActivity(new Intent(this, BookActivity.class));
+                handleBookNavigation();
             } else if (id == R.id.nav_settings) {
                 startActivity(new Intent(this, SettingsActivity.class));
             } else if (id == R.id.nav_photos) {
@@ -81,22 +89,10 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    private void loadCachedJson() {
-        try {
-            JSONObject cached = loadJsonFromCache();
-            if (cached != null) {
-                cachedJsonString = cached.toString();
-                Log.d(TAG, "Loaded JSON from cache");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading cached JSON", e);
-        }
-    }
-
-    private void downloadJsonInBackground() {
+    private void downloadJsonInBackground(String urlString, String filename, boolean isMp3) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_data.json");
+                URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder builder = new StringBuilder();
@@ -105,56 +101,55 @@ public class HomeActivity extends AppCompatActivity {
                     builder.append(line);
                 }
                 reader.close();
-                cachedJsonString = builder.toString();
 
-                // Save to cache
-                saveJsonToCache(cachedJsonString);
-                isDownloadComplete = true; // Mark download as complete
+                String jsonString = builder.toString();
+                saveJsonToCache(filename, jsonString);
 
-                // Removed auto-navigation logic here.
-                // The JSON is now only downloaded and cached.
-                Log.d(TAG, "JSON download complete and cached.");
+                if (isMp3) {
+                    cachedMp3JsonString = jsonString;
+                    isMp3DownloadComplete = true;
+                } else {
+                    cachedBookJsonString = jsonString;
+                    isBookDownloadComplete = true;
+                }
+
+                Log.d(TAG, filename + " download complete and cached.");
 
             } catch (Exception e) {
-                Log.e(TAG, "Error downloading JSON", e);
-                isDownloadComplete = true; // Mark download as complete even if failed
+                Log.e(TAG, "Error downloading " + filename, e);
+                if (isMp3) {
+                    isMp3DownloadComplete = true;
+                } else {
+                    isBookDownloadComplete = true;
+                }
                 runOnUiThread(() ->
-                        Toast.makeText(HomeActivity.this, "Error downloading JSON", Toast.LENGTH_SHORT).show());
+                        Toast.makeText(HomeActivity.this, "Error downloading " + filename, Toast.LENGTH_SHORT).show());
             }
         }).start();
     }
 
     private void handleMp3Navigation() {
-        // Check if we have JSON data
-        if (cachedJsonString != null && !cachedJsonString.isEmpty()) {
-            // If JSON is available, navigate directly to RadioCategoryActivity
+        if (cachedMp3JsonString != null && !cachedMp3JsonString.isEmpty()) {
             Intent intent = new Intent(HomeActivity.this, RadioCategoryActivity.class);
-            intent.putExtra("json", cachedJsonString);
+            intent.putExtra("json", cachedMp3JsonString);
             startActivity(intent);
         } else {
-            // No JSON available yet or download failed
-            if (isDownloadComplete) {
-                // Download completed but failed or resulted in empty data
-                Toast.makeText(this, "No data available. Please check your connection.", Toast.LENGTH_LONG).show();
+            if (isMp3DownloadComplete) {
+                Toast.makeText(this, "No MP3 data available.", Toast.LENGTH_LONG).show();
             } else {
-                // Download still in progress
-                Toast.makeText(this, "Loading data... Please wait a moment and try again.", Toast.LENGTH_LONG).show();
-
-                // Optional: Retry loading from cache immediately in case it just finished
-                loadCachedJson();
-                if (cachedJsonString != null) {
-                    // If cache load succeeded, then navigate
-                    Intent intent = new Intent(this, RadioCategoryActivity.class);
-                    intent.putExtra("json", cachedJsonString);
-                    startActivity(intent);
-                }
+                Toast.makeText(this, "Loading MP3 data... Please wait.", Toast.LENGTH_LONG).show();
             }
         }
     }
 
-    private void saveJsonToCache(String json) {
+    private void handleBookNavigation() {
+        Intent intent = new Intent(HomeActivity.this, BookActivity.class);
+        startActivity(intent); // no extras needed
+    }
+
+    private void saveJsonToCache(String filename, String json) {
         try {
-            File jsonFile = new File(getCacheDir(), "mp3_data.json");
+            File jsonFile = new File(getCacheDir(), filename);
             FileOutputStream fos = new FileOutputStream(jsonFile);
             fos.write(json.getBytes());
             fos.close();
@@ -164,11 +159,11 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private JSONObject loadJsonFromCache() {
+    private String loadJsonFromCache(String filename) {
         try {
-            File jsonFile = new File(getCacheDir(), "mp3_data.json");
+            File jsonFile = new File(getCacheDir(), filename);
             if (!jsonFile.exists()) {
-                Log.d(TAG, "Cache file does not exist");
+                Log.d(TAG, "Cache file " + filename + " does not exist");
                 return null;
             }
 
@@ -180,7 +175,7 @@ public class HomeActivity extends AppCompatActivity {
                 builder.append(line);
             }
             reader.close();
-            return new JSONObject(builder.toString());
+            return builder.toString();
         } catch (Exception e) {
             Log.e(TAG, "Error loading JSON from cache", e);
             return null;

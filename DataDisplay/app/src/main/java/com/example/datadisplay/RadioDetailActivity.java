@@ -3,7 +3,6 @@ package com.example.datadisplay;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -11,6 +10,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -24,7 +25,6 @@ public class RadioDetailActivity extends AppCompatActivity {
     private List<String> allUrls;
 
     private TextView titleText;
-    private TextView durationText;
     private TextView elapsedTimeText;
     private TextView totalTimeText;
     private ImageButton playPauseButton;
@@ -41,12 +41,11 @@ public class RadioDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_radio_detail);
 
         titleText = findViewById(R.id.titleText);
-        durationText = findViewById(R.id.durationText);
         elapsedTimeText = findViewById(R.id.elapsedTimeText);
         totalTimeText = findViewById(R.id.totalTimeText);
         playPauseButton = findViewById(R.id.playPauseButton);
-        Button loopButton = findViewById(R.id.loopButton);
-        Button shuffleButton = findViewById(R.id.shuffleButton);
+        ImageButton loopButton = findViewById(R.id.loopButton);
+        ImageButton shuffleButton = findViewById(R.id.shuffleButton);
         progressBar = findViewById(R.id.progressBar);
 
         String title = getIntent().getStringExtra("title");
@@ -60,13 +59,25 @@ public class RadioDetailActivity extends AppCompatActivity {
             mediaPlayer.setDataSource(currentUrl);
             mediaPlayer.setOnPreparedListener(mp -> {
                 int durationMs = mp.getDuration();
-                durationText.setText("Duration: " + formatTime(durationMs));
                 totalTimeText.setText(formatTime(durationMs));
                 progressBar.setMax(durationMs);
                 mp.start();
                 isPlaying = true;
                 playPauseButton.setImageResource(R.drawable.ic_pause);
                 startProgressUpdater();
+
+                // Completion listener for first track
+                mediaPlayer.setOnCompletionListener(completed -> {
+                    if (isShuffling) {
+                        playNextRandomTrack();
+                    } else {
+                        isPlaying = false;
+                        playPauseButton.setImageResource(R.drawable.ic_play);
+                        stopProgressUpdater();
+                        progressBar.setProgress(progressBar.getMax());
+                        elapsedTimeText.setText(totalTimeText.getText());
+                    }
+                });
             });
             mediaPlayer.prepareAsync();
         } catch (Exception e) {
@@ -87,18 +98,37 @@ public class RadioDetailActivity extends AppCompatActivity {
             }
         });
 
+        loopButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+        shuffleButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+
         loopButton.setOnClickListener(v -> {
             isLooping = !isLooping;
-            mediaPlayer.setLooping(isLooping);
-            Toast.makeText(this, isLooping ? "Looping enabled" : "Looping disabled", Toast.LENGTH_SHORT).show();
+
+            if (isLooping) {
+                // Turn off shuffle if it was on
+                isShuffling = false;
+                shuffleButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+
+                mediaPlayer.setLooping(true);
+                loopButton.setBackgroundResource(R.drawable.bg_oval_highlight);
+            } else {
+                mediaPlayer.setLooping(false);
+                loopButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+            }
         });
 
         shuffleButton.setOnClickListener(v -> {
             isShuffling = !isShuffling;
-            Toast.makeText(this, isShuffling ? "Shuffle mode ON" : "Shuffle mode OFF", Toast.LENGTH_SHORT).show();
 
             if (isShuffling) {
-                playNextRandomTrack();
+                // Turn off loop if it was on
+                isLooping = false;
+                mediaPlayer.setLooping(false);
+                loopButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+
+                shuffleButton.setBackgroundResource(R.drawable.bg_oval_highlight);
+            } else {
+                shuffleButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
             }
         });
 
@@ -134,7 +164,6 @@ public class RadioDetailActivity extends AppCompatActivity {
                 mediaPlayer.setDataSource(url);
                 mediaPlayer.setOnPreparedListener(mp -> {
                     int durationMs = mp.getDuration();
-                    durationText.setText("Duration: " + formatTime(durationMs));
                     totalTimeText.setText(formatTime(durationMs));
                     progressBar.setMax(durationMs);
                     mp.start();
@@ -188,6 +217,11 @@ public class RadioDetailActivity extends AppCompatActivity {
     private String extractTitleFromUrl(String url) {
         String[] parts = url.split("/");
         String filename = parts[parts.length - 1];
+        try {
+            filename = URLDecoder.decode(filename, StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            // ignore decoding errors
+        }
         return filename.replace(".mp3", "").replace("_", " ");
     }
 
@@ -205,14 +239,16 @@ public class RadioDetailActivity extends AppCompatActivity {
     }
 
     private void playNextRandomTrack() {
-        if (allUrls.size() > 1) {
+        if (allUrls != null && allUrls.size() > 1) {
             String nextUrl;
             do {
                 int randomIndex = new Random().nextInt(allUrls.size());
                 nextUrl = allUrls.get(randomIndex);
-            } while (nextUrl.equals(currentUrl));
+            } while (nextUrl.equals(currentUrl)); // avoid repeating the same track
+
             playNewTrack(nextUrl);
+        } else if (allUrls != null && allUrls.size() == 1) {
+            playNewTrack(allUrls.get(0));
         }
     }
-
 }
