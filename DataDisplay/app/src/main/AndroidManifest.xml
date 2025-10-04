@@ -14,10 +14,34 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DataDisplay">
         <activity
-            android:name=".BookDetailActivity"
+            android:name=".RadioDetailActivity"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".RadioListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RadioFolderActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RadioCategoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CachedFilesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PhotoFolderActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PhotoCategoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PhotoListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".HomeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -25,6 +49,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".PhotoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".BookDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".BookActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

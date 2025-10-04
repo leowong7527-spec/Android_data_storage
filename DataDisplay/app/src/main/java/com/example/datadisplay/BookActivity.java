@@ -1,6 +1,7 @@
 package com.example.datadisplay;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,8 +12,10 @@ import android.widget.ListView;
 import android.widget.LinearLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.flexbox.FlexboxLayout;
+import com.google.android.material.navigation.NavigationView;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -28,14 +31,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity {
+public class BookActivity extends AppCompatActivity {
 
     ListView listView;
     ArrayList<String> userList = new ArrayList<>();
     ArrayAdapter<String> adapter;
 
     String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json";
-
 
     JSONArray booksArray;
     FlexboxLayout tagContainer;
@@ -47,14 +49,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_book);
 
         listView = findViewById(R.id.listView);
         tagContainer = findViewById(R.id.tagContainer);
         collapsibleTagContainer = findViewById(R.id.collapsibleTagContainer);
         toggleTagsButton = findViewById(R.id.toggleTagsButton);
 
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, userList);
+        adapter = new ArrayAdapter<>(this, R.layout.list_item, userList);
         listView.setAdapter(adapter);
 
         fetchJson();
@@ -80,6 +82,13 @@ public class MainActivity extends AppCompatActivity {
                     String author = clickedObj.optString("author");
                     String content = clickedObj.optString("content");
 
+                    // ✅ Detect hash vs UTF-8
+                    if (looksLikeHash(content)) {
+                        content = "[HASH] " + content;
+                    } else {
+                        content = content.replace("\\n", "\n");
+                    }
+
                     // Handle both single string and array for "tag"
                     String tagValue = "";
                     if (clickedObj.has("tag")) {
@@ -103,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("BOOK_CLICK", "Tag(s): " + tagValue);
                     Log.d("BOOK_CLICK", "Content: " + content);
 
-                    Intent intent = new Intent(MainActivity.this, BookDetailActivity.class);
+                    Intent intent = new Intent(BookActivity.this, BookDetailActivity.class);
                     intent.putExtra("name", name);
                     intent.putExtra("author", author);
                     intent.putExtra("content", content);
@@ -115,7 +124,27 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+
+        DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
+        NavigationView navigationView = findViewById(R.id.navigationView);
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                startActivity(new Intent(this, HomeActivity.class));
+            } else if (id == R.id.nav_books) {
+                drawerLayout.closeDrawers();
+            } else if (id == R.id.nav_photos) {
+                startActivity(new Intent(this, PhotoActivity.class));
+            } else if (id == R.id.nav_settings) {
+
+        }
+            drawerLayout.closeDrawers();
+            return true;
+        });
     }
+
 
     private void fetchJson() {
         OkHttpClient client = new OkHttpClient();
@@ -164,7 +193,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                userList.add(name + " - Author: " + author);
+                String displayName = limitWords(name, 10);
+                userList.add(displayName);
             }
 
             adapter.notifyDataSetChanged();
@@ -175,6 +205,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    private String limitWords(String text, int maxWords) {
+        String[] words = text.split("\\s+");
+        if (words.length <= maxWords) return text;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < maxWords; i++) {
+            sb.append(words[i]).append(" ");
+        }
+        return sb.toString().trim() + "...";
+    }
     private void setupTags(Set<String> tags) {
         tagContainer.removeAllViews();
 
@@ -183,22 +223,23 @@ public class MainActivity extends AppCompatActivity {
             tagButton.setText(tag);
             tagButton.setAllCaps(false);
 
-            // ✅ Add margins so spacing stays consistent
+            // Initial background color
+            tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY));
+
             FlexboxLayout.LayoutParams params =
                     new FlexboxLayout.LayoutParams(
                             FlexboxLayout.LayoutParams.WRAP_CONTENT,
                             FlexboxLayout.LayoutParams.WRAP_CONTENT);
-            params.setMargins(8, 8, 8, 8); // left, top, right, bottom
+            params.setMargins(8, 8, 8, 8);
             tagButton.setLayoutParams(params);
 
-            // Toggle selection
             tagButton.setOnClickListener(v -> {
                 if (selectedTags.contains(tag)) {
                     selectedTags.remove(tag);
-                    tagButton.setBackgroundColor(Color.LTGRAY); // deselected
+                    tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.LTGRAY)); // Unselected
                 } else {
                     selectedTags.add(tag);
-                    tagButton.setBackgroundColor(Color.CYAN); // selected
+                    tagButton.setBackgroundTintList(ColorStateList.valueOf(Color.CYAN)); // Selected
                 }
                 filterBooksByTags();
             });
@@ -245,9 +286,7 @@ public class MainActivity extends AppCompatActivity {
                         bookTags.add(obj.optString("tag"));
                     }
 
-                    // ✅ Show book if it contains ALL selected tags
-                    // New: requires ANY overlap between book tags and selected tags
-                    if (selectedTags.isEmpty() || !disjoint(bookTags, selectedTags)) {
+                    if (selectedTags.isEmpty() || bookTags.containsAll(selectedTags)) {
                         userList.add(obj.optString("name") + " - Author: " + obj.optString("author"));
                     }
 
@@ -260,21 +299,27 @@ public class MainActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    private boolean disjoint(Set<String> a, Set<String> b) {
-        for (String s : a) {
-            if (b.contains(s)) return false;
-        }
-        return true;
-    }
 
     private void showAllBooks() {
         userList.clear();
         for (int i = 0; i < booksArray.length(); i++) {
             JSONObject obj = booksArray.optJSONObject(i);
             if (obj != null) {
-                userList.add(obj.optString("name") + " - Author: " + obj.optString("author"));
+                userList.add(obj.optString("name"));
             }
         }
         adapter.notifyDataSetChanged();
+    }
+
+    // ✅ Helper: detect if string looks like a hash
+    private boolean looksLikeHash(String s) {
+        return s != null &&
+                (
+                        // Hexadecimal hashes (MD5 = 32 chars, SHA‑1 = 40 chars, SHA‑256 = 64 chars)
+                        s.matches("^[a-fA-F0-9]{32,64}$")
+                                ||
+                                // Base64‑like strings (commonly 20+ chars, letters/numbers/+/=)
+                                s.matches("^[A-Za-z0-9+/=]{20,}$")
+                );
     }
 }
