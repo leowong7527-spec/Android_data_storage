@@ -90,6 +90,23 @@
             android:src="@drawable/ic_shuffle"
             android:background="@android:color/transparent"
             android:contentDescription="@string/shuffle" />
+
+        <ImageButton
+            android:id="@+id/previousButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_previous"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/previous"
+            android:layout_marginEnd="50dp" />
+
+        <ImageButton
+            android:id="@+id/nextButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_next"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/next" />
     </LinearLayout>
 
 </LinearLayout>

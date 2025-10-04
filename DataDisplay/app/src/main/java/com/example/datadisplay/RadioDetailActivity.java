@@ -1,39 +1,50 @@
 package com.example.datadisplay;
 
-import android.media.MediaPlayer;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.Handler;
+import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 
 public class RadioDetailActivity extends AppCompatActivity {
 
-    private MediaPlayer mediaPlayer;
-    private boolean isPlaying = false;
-    private boolean isLooping = false;
+    private static final String TAG = "RadioDetailActivity";
+
     private String currentUrl;
     private List<String> allUrls;
+    private boolean isShuffling = false;
+    private boolean isLooping = false;
+    private boolean isPlaying = false;
 
     private TextView titleText;
+    private ImageButton playPauseButton;
+    private ImageButton loopButton;
+    private ImageButton shuffleButton;
+    private SeekBar progressBar;
     private TextView elapsedTimeText;
     private TextView totalTimeText;
-    private ImageButton playPauseButton;
-    private SeekBar progressBar;
 
-    private boolean isShuffling = false;
+    private int trackDuration = 0;
 
-    private Handler progressHandler = new Handler();
-    private Runnable progressRunnable;
+    public static final String ACTION_PLAY = "ACTION_PLAY";
+    public static final String ACTION_PAUSE = "ACTION_PAUSE";
+    public static final String ACTION_SHUFFLE = "ACTION_SHUFFLE";
+    public static final String ACTION_LOOP = "ACTION_LOOP";
+    public static final String ACTION_STATUS = "ACTION_STATUS";
+    public static final String ACTION_PROGRESS = "ACTION_PROGRESS";
+    public static final String ACTION_SEEK = "ACTION_SEEK";
+    public static final String ACTION_REQUEST_STATUS = "ACTION_REQUEST_STATUS";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,12 +52,12 @@ public class RadioDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_radio_detail);
 
         titleText = findViewById(R.id.titleText);
+        playPauseButton = findViewById(R.id.playPauseButton);
+        loopButton = findViewById(R.id.loopButton);
+        shuffleButton = findViewById(R.id.shuffleButton);
+        progressBar = findViewById(R.id.progressBar);
         elapsedTimeText = findViewById(R.id.elapsedTimeText);
         totalTimeText = findViewById(R.id.totalTimeText);
-        playPauseButton = findViewById(R.id.playPauseButton);
-        ImageButton loopButton = findViewById(R.id.loopButton);
-        ImageButton shuffleButton = findViewById(R.id.shuffleButton);
-        progressBar = findViewById(R.id.progressBar);
 
         String title = getIntent().getStringExtra("title");
         currentUrl = getIntent().getStringExtra("url");
@@ -54,201 +65,157 @@ public class RadioDetailActivity extends AppCompatActivity {
 
         titleText.setText(title);
 
-        mediaPlayer = new MediaPlayer();
-        try {
-            mediaPlayer.setDataSource(currentUrl);
-            mediaPlayer.setOnPreparedListener(mp -> {
-                int durationMs = mp.getDuration();
-                totalTimeText.setText(formatTime(durationMs));
-                progressBar.setMax(durationMs);
-                mp.start();
-                isPlaying = true;
-                playPauseButton.setImageResource(R.drawable.ic_pause);
-                startProgressUpdater();
-
-                // Completion listener for first track
-                mediaPlayer.setOnCompletionListener(completed -> {
-                    if (isShuffling) {
-                        playNextRandomTrack();
-                    } else {
-                        isPlaying = false;
-                        playPauseButton.setImageResource(R.drawable.ic_play);
-                        stopProgressUpdater();
-                        progressBar.setProgress(progressBar.getMax());
-                        elapsedTimeText.setText(totalTimeText.getText());
-                    }
-                });
-            });
-            mediaPlayer.prepareAsync();
-        } catch (Exception e) {
-            Toast.makeText(this, "Playback error", Toast.LENGTH_SHORT).show();
-        }
+        loopButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent));
+        shuffleButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent));
 
         playPauseButton.setOnClickListener(v -> {
-            if (isPlaying) {
-                mediaPlayer.pause();
-                isPlaying = false;
-                playPauseButton.setImageResource(R.drawable.ic_play);
-                stopProgressUpdater();
-            } else {
-                mediaPlayer.start();
-                isPlaying = true;
-                playPauseButton.setImageResource(R.drawable.ic_pause);
-                startProgressUpdater();
-            }
+            Intent intent = new Intent(this, RadioPlaybackService.class);
+            intent.setAction(isPlaying ? ACTION_PAUSE : ACTION_PLAY);
+            startService(intent);
         });
-
-        loopButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
-        shuffleButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
 
         loopButton.setOnClickListener(v -> {
             isLooping = !isLooping;
-
-            if (isLooping) {
-                // Turn off shuffle if it was on
-                isShuffling = false;
-                shuffleButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
-
-                mediaPlayer.setLooping(true);
-                loopButton.setBackgroundResource(R.drawable.bg_oval_highlight);
-            } else {
-                mediaPlayer.setLooping(false);
-                loopButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
-            }
+            Intent intent = new Intent(this, RadioPlaybackService.class);
+            intent.setAction(ACTION_LOOP);
+            intent.putExtra("loop", isLooping);
+            startService(intent);
+            updateLoopUI();
         });
 
         shuffleButton.setOnClickListener(v -> {
             isShuffling = !isShuffling;
+            Intent intent = new Intent(this, RadioPlaybackService.class);
+            intent.setAction(ACTION_SHUFFLE);
+            intent.putExtra("shuffle", isShuffling);
+            startService(intent);
+            updateShuffleUI();
+        });
 
-            if (isShuffling) {
-                // Turn off loop if it was on
-                isLooping = false;
-                mediaPlayer.setLooping(false);
-                loopButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
+        ImageButton nextButton = findViewById(R.id.nextButton);
+        nextButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, RadioPlaybackService.class);
+            intent.setAction("ACTION_NEXT");
+            startService(intent);
+        });
 
-                shuffleButton.setBackgroundResource(R.drawable.bg_oval_highlight);
-            } else {
-                shuffleButton.setBackgroundColor(getResources().getColor(android.R.color.transparent));
-            }
+        ImageButton previousButton = findViewById(R.id.previousButton);
+        previousButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, RadioPlaybackService.class);
+            intent.setAction(RadioPlaybackService.ACTION_PREVIOUS);
+            startService(intent);
         });
 
         progressBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            boolean fromUserChange = false;
+
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && mediaPlayer != null && isPlaying) {
-                    mediaPlayer.seekTo(progress);
+                fromUserChange = fromUser;
+                if (fromUser) {
                     elapsedTimeText.setText(formatTime(progress));
                 }
             }
 
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-                stopProgressUpdater();
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                startProgressUpdater();
-            }
-        });
-    }
-
-    private void playNewTrack(String url) {
-        if (mediaPlayer != null) {
-            mediaPlayer.reset();
-            stopProgressUpdater();
-            progressBar.setProgress(0);
-            elapsedTimeText.setText("00:00");
-
-            try {
-                mediaPlayer.setDataSource(url);
-                mediaPlayer.setOnPreparedListener(mp -> {
-                    int durationMs = mp.getDuration();
-                    totalTimeText.setText(formatTime(durationMs));
-                    progressBar.setMax(durationMs);
-                    mp.start();
-                    isPlaying = true;
-                    playPauseButton.setImageResource(R.drawable.ic_pause);
-                    titleText.setText(extractTitleFromUrl(url));
-                    startProgressUpdater();
-
-                    // 🔁 Auto-play next random track if shuffle is active
-                    mediaPlayer.setOnCompletionListener(completed -> {
-                        if (isShuffling) {
-                            playNextRandomTrack();
-                        } else {
-                            isPlaying = false;
-                            playPauseButton.setImageResource(R.drawable.ic_play);
-                            stopProgressUpdater();
-                            progressBar.setProgress(progressBar.getMax());
-                            elapsedTimeText.setText(totalTimeText.getText());
-                        }
-                    });
-                });
-
-                mediaPlayer.prepareAsync();
-                currentUrl = url;
-
-            } catch (Exception e) {
-                Toast.makeText(this, "Shuffle error", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    private void startProgressUpdater() {
-        progressRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (mediaPlayer != null && isPlaying) {
-                    int currentPosition = mediaPlayer.getCurrentPosition();
-                    progressBar.setProgress(currentPosition);
-                    elapsedTimeText.setText(formatTime(currentPosition));
-                    progressHandler.postDelayed(this, 1000);
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {
+                if (fromUserChange) {
+                    Intent intent = new Intent(RadioDetailActivity.this, RadioPlaybackService.class);
+                    intent.setAction(ACTION_SEEK);
+                    intent.putExtra("position", seekBar.getProgress());
+                    startService(intent);
                 }
             }
-        };
-        progressHandler.post(progressRunnable);
+        });
+
+        startPlaybackService();
     }
 
-    private void stopProgressUpdater() {
-        progressHandler.removeCallbacks(progressRunnable);
+    private void startPlaybackService() {
+        Intent serviceIntent = new Intent(this, RadioPlaybackService.class);
+        serviceIntent.putExtra("url", currentUrl);
+        serviceIntent.putStringArrayListExtra("allUrls", new ArrayList<>(allUrls));
+        serviceIntent.putExtra("shuffle", isShuffling);
+        serviceIntent.putExtra("loop", isLooping);
+        startService(serviceIntent);
     }
 
-    private String extractTitleFromUrl(String url) {
-        String[] parts = url.split("/");
-        String filename = parts[parts.length - 1];
-        try {
-            filename = URLDecoder.decode(filename, StandardCharsets.UTF_8.name());
-        } catch (Exception e) {
-            // ignore decoding errors
-        }
-        return filename.replace(".mp3", "").replace("_", " ");
+    private void updateLoopUI() {
+        loopButton.setBackgroundResource(isLooping ?
+                R.drawable.bg_oval_highlight :
+                android.R.color.transparent);
     }
 
-    private String formatTime(int milliseconds) {
-        int minutes = (milliseconds / 1000) / 60;
-        int seconds = (milliseconds / 1000) % 60;
+    private void updateShuffleUI() {
+        shuffleButton.setBackgroundResource(isShuffling ?
+                R.drawable.bg_oval_highlight :
+                android.R.color.transparent);
+    }
+
+    private String formatTime(int millis) {
+        int seconds = millis / 1000;
+        int minutes = seconds / 60;
+        seconds = seconds % 60;
         return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
     }
 
+    private final BroadcastReceiver playbackReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_STATUS.equals(intent.getAction())) {
+                isPlaying = intent.getBooleanExtra("isPlaying", false);
+                playPauseButton.setImageResource(isPlaying ?
+                        R.drawable.ic_pause : R.drawable.ic_play);
+            }
+        }
+    };
+
+    private final BroadcastReceiver progressReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ACTION_PROGRESS.equals(intent.getAction())) {
+                int pos = intent.getIntExtra("position", 0);
+                int dur = intent.getIntExtra("duration", 0);
+                if (dur > 0) {
+                    trackDuration = dur;
+                    progressBar.setMax(trackDuration);
+                    totalTimeText.setText(formatTime(trackDuration));
+                }
+                progressBar.setProgress(pos);
+                elapsedTimeText.setText(formatTime(pos));
+            }
+        }
+    };
+
+    private final BroadcastReceiver trackChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (RadioPlaybackService.ACTION_TRACK_CHANGED.equals(intent.getAction())) {
+                String newTitle = intent.getStringExtra("title");
+                currentUrl = intent.getStringExtra("url");
+                titleText.setText(newTitle);
+            }
+        }
+    };
+
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        stopProgressUpdater();
-        if (mediaPlayer != null) mediaPlayer.release();
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(playbackReceiver, new IntentFilter(ACTION_STATUS), Context.RECEIVER_NOT_EXPORTED);
+        registerReceiver(progressReceiver, new IntentFilter(ACTION_PROGRESS), Context.RECEIVER_NOT_EXPORTED);
+        registerReceiver(trackChangedReceiver, new IntentFilter(RadioPlaybackService.ACTION_TRACK_CHANGED), Context.RECEIVER_NOT_EXPORTED);
+
+        // Request current status when resuming
+        Intent request = new Intent(this, RadioPlaybackService.class);
+        request.setAction(ACTION_REQUEST_STATUS);
+        startService(request);
     }
 
-    private void playNextRandomTrack() {
-        if (allUrls != null && allUrls.size() > 1) {
-            String nextUrl;
-            do {
-                int randomIndex = new Random().nextInt(allUrls.size());
-                nextUrl = allUrls.get(randomIndex);
-            } while (nextUrl.equals(currentUrl)); // avoid repeating the same track
-
-            playNewTrack(nextUrl);
-        } else if (allUrls != null && allUrls.size() == 1) {
-            playNewTrack(allUrls.get(0));
-        }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(playbackReceiver);
+        unregisterReceiver(progressReceiver);
+        unregisterReceiver(trackChangedReceiver);
     }
 }

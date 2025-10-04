@@ -24,4 +24,7 @@
     <string name="error_loading_categories">Error loading categories</string>
     <string name="no_json_found">No mp3_data.json found in cache</string>
 
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
 </resources>
