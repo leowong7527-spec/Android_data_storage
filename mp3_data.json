@@ -4,7 +4,7 @@
       "name": "Songs",
       "folders": [
         {
-          "name": "Cantonese",
+          "name": "BEYOND",
           "files": [
             {
               "title": "BEYOND 海闊天空",
@@ -13,43 +13,11 @@
             {
               "title": "Beyond - 灰色軌跡",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/Cantonese/Beyond%20-%20灰色軌跡.mp3"
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
             }
           ]
         },
         {
-          "name": "Putonghua",
+          "name": "周杰倫",
           "files": [
             {
               "title": "周杰倫 Jay Chou【蒲公英的約定 A Dandelion's Promise】",
@@ -58,6 +26,10 @@
             {
               "title": "周杰倫 Jay Chou【七里香 Orange Jasmine】",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/Putonghua/周杰倫%20Jay%20Chou【七里香%20Orange%20Jasmine】.mp3"
+            },
+            {
+              "title": "周杰倫 Jay Chou【晴天 Sunny Day】",
+              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/Putonghua/周杰倫%20Jay%20Chou【晴天%20Sunny%20Day】.mp3"
             },
             {
               "title": "周杰倫 Jay Chou【楓Maple Leaf 】",
@@ -226,7 +198,12 @@
             {
               "title": "周杰倫Jay Chou X aMEI【不該 Shouldn't Be】",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/Putonghua/周杰倫Jay%20Chou%20X%20aMEI【不該%20Shouldn't%20Be】.mp3"
-            },
+            }
+          ]
+        },
+        {
+          "name": "林俊傑",
+          "files": [
             {
               "title": "林俊傑 JJ Lin - 修煉愛情 Practice Love",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/Putonghua/林俊傑%20JJ%20Lin%20-%20修煉愛情%20Practice%20Love.mp3"
@@ -254,28 +231,12 @@
             {
               "title": "林俊傑 JJ Lin【背對背擁抱 Back To Back】",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/Putonghua/林俊傑%20JJ%20Lin【背對背擁抱%20Back%20To%20Back】.mp3"
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
             }
           ]
         },
         {
-          "name": "English",
+          "name": "Phil Collins",
           "files": [
-            {
-              "title": "Sometimes When We Touch - Dan Hill",
-              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/English/Sometimes%20When%20We%20Touch%20-%20Dan%20Hill.mp3"
-            },
             {
               "title": "Phil Collins - Against All Odds",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/English/Phil%20Collins%20-%20Against%20All%20Odds.mp3"
@@ -283,14 +244,15 @@
             {
               "title": "Phil Collins - A Groovy Kind Of Love",
               "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/English/Phil%20Collins%20-%20A%20Groovy%20Kind%20Of%20Love.mp3"
-            },
+            }
+          ]
+        },
+        {
+          "name": "Dan Hill",
+          "files": [
             {
-              "title": "",
-              "path": ""
-            },
-            {
-              "title": "",
-              "path": ""
+              "title": "Sometimes When We Touch - Dan Hill",
+              "path": "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_soundtrack/Songs/English/Sometimes%20When%20We%20Touch%20-%20Dan%20Hill.mp3"
             }
           ]
         }
