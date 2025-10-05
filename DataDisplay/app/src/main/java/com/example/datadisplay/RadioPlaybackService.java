@@ -3,6 +3,7 @@ package com.example.datadisplay;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -21,7 +22,7 @@ public class RadioPlaybackService extends Service {
 
     private static final String TAG = "RadioPlaybackService";
 
-    public static final String CHANNEL_ID = "RadioPlaybackChannel";
+    public static final String CHANNEL_ID = "RadioPlaybackChannelV2";
     private MediaPlayer mediaPlayer;
     private List<String> allUrls;
     private String currentUrl;
@@ -39,7 +40,6 @@ public class RadioPlaybackService extends Service {
     public static final String ACTION_REQUEST_STATUS = "ACTION_REQUEST_STATUS";
 
     public static final String ACTION_NEXT = "ACTION_NEXT";
-
     public static final String ACTION_PREVIOUS = "ACTION_PREVIOUS";
 
     private final Handler progressHandler = new Handler();
@@ -63,15 +63,7 @@ public class RadioPlaybackService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Radio Playing")
-                .setContentText("Streaming audio...")
-                .setSmallIcon(R.drawable.ic_radio)
-                .build();
-
-        startForeground(1, notification);
-
-        String action = intent.getAction();
+        String action = intent != null ? intent.getAction() : null;
         if (action != null) {
             switch (action) {
                 case ACTION_PLAY:
@@ -79,6 +71,7 @@ public class RadioPlaybackService extends Service {
                         mediaPlayer.start();
                         broadcastStatus(true);
                         progressHandler.post(progressRunnable);
+                        showMediaNotification(true);
                     }
                     return START_STICKY;
 
@@ -87,6 +80,7 @@ public class RadioPlaybackService extends Service {
                         mediaPlayer.pause();
                         broadcastStatus(false);
                         progressHandler.removeCallbacks(progressRunnable);
+                        showMediaNotification(false);
                     }
                     return START_STICKY;
 
@@ -110,6 +104,7 @@ public class RadioPlaybackService extends Service {
                     if (currentUrl != null) {
                         broadcastTrackChanged(currentUrl);
                     }
+                    showMediaNotification(mediaPlayer != null && mediaPlayer.isPlaying());
                     return START_STICKY;
 
                 case ACTION_NEXT:
@@ -132,13 +127,11 @@ public class RadioPlaybackService extends Service {
         return START_STICKY;
     }
 
-
     private void playPreviousTrack() {
         if (isShuffling) {
-            playNextRandomTrack(); // or implement playPreviousRandomTrack() if needed
+            playNextRandomTrack();
             return;
         }
-
         if (allUrls == null || allUrls.isEmpty()) return;
 
         int currentIndex = allUrls.indexOf(currentUrl);
@@ -156,7 +149,6 @@ public class RadioPlaybackService extends Service {
             playNextRandomTrack();
             return;
         }
-
         if (allUrls == null || allUrls.isEmpty()) return;
 
         int currentIndex = allUrls.indexOf(currentUrl);
@@ -168,6 +160,7 @@ public class RadioPlaybackService extends Service {
 
         playTrack(nextUrl);
     }
+
     private void playTrack(String url) {
         try {
             if (mediaPlayer != null) {
@@ -183,6 +176,7 @@ public class RadioPlaybackService extends Service {
                 broadcastTrackChanged(url);
                 progressHandler.removeCallbacks(progressRunnable);
                 progressHandler.post(progressRunnable);
+                showMediaNotification(true);
             });
             mediaPlayer.setOnCompletionListener(mp -> {
                 broadcastStatus(false);
@@ -195,6 +189,9 @@ public class RadioPlaybackService extends Service {
                     mediaPlayer.start();
                     broadcastStatus(true);
                     progressHandler.post(progressRunnable);
+                    showMediaNotification(true);
+                } else {
+                    showMediaNotification(false);
                 }
             });
             mediaPlayer.prepareAsync();
@@ -202,6 +199,7 @@ public class RadioPlaybackService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Error playing track: " + e.getMessage(), e);
             broadcastStatus(false);
+            showMediaNotification(false);
             if (isShuffling && allUrls != null && allUrls.size() > 1) {
                 playNextRandomTrack();
             }
@@ -224,7 +222,7 @@ public class RadioPlaybackService extends Service {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
                     "Radio Playback Channel",
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_DEFAULT
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
@@ -233,11 +231,58 @@ public class RadioPlaybackService extends Service {
         }
     }
 
+    private void showMediaNotification(boolean isPlaying) {
+        Log.d(TAG, "showMediaNotification called. isPlaying=" + isPlaying
+                + ", currentUrl=" + currentUrl);
+
+        PendingIntent prevIntent = PendingIntent.getService(
+                this, 0,
+                new Intent(this, RadioPlaybackService.class).setAction(ACTION_PREVIOUS),
+                PendingIntent.FLAG_IMMUTABLE
+        );
+
+        PendingIntent playPauseIntent = PendingIntent.getService(
+                this, 1,
+                new Intent(this, RadioPlaybackService.class).setAction(isPlaying ? ACTION_PAUSE : ACTION_PLAY),
+                PendingIntent.FLAG_IMMUTABLE
+        );
+
+        PendingIntent nextIntent = PendingIntent.getService(
+                this, 2,
+                new Intent(this, RadioPlaybackService.class).setAction(ACTION_NEXT),
+                PendingIntent.FLAG_IMMUTABLE
+        );
+
+        String title = extractTitleFromUrl(currentUrl);
+        Log.d(TAG, "Building notification with title: " + title);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Now Playing")
+                .setContentText(title)
+                .setSmallIcon(R.drawable.ic_radio)
+                .addAction(R.drawable.ic_previous, "Previous", prevIntent)
+                .addAction(isPlaying ? R.drawable.ic_pause : R.drawable.ic_play,
+                        isPlaying ? "Pause" : "Play", playPauseIntent)
+                .addAction(R.drawable.ic_next, "Next", nextIntent)
+                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                        .setShowActionsInCompactView(0, 1, 2))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setOnlyAlertOnce(true)
+                .build();
+
+        startForeground(1, notification);
+        Log.d(TAG, "Notification posted to foreground service.");
+    }
+
     private void broadcastStatus(boolean isPlaying) {
+        // Send broadcast to your activity
         Intent statusIntent = new Intent(ACTION_STATUS);
         statusIntent.setPackage(getPackageName());
         statusIntent.putExtra("isPlaying", isPlaying);
         sendBroadcast(statusIntent);
+
+        // Also update the notification at the same time
+        showMediaNotification(isPlaying);
     }
 
     private void broadcastTrackChanged(String url) {
@@ -246,12 +291,31 @@ public class RadioPlaybackService extends Service {
         intent.putExtra("url", url);
         intent.putExtra("title", extractTitleFromUrl(url));
         sendBroadcast(intent);
+
+        // 🔑 Update the notification text with the new song title
+        boolean playing = mediaPlayer != null && mediaPlayer.isPlaying();
+        showMediaNotification(playing);
     }
 
     private String extractTitleFromUrl(String url) {
         if (url == null) return "Unknown";
+
+        // Get the file name portion after the last '/'
         String fileName = url.substring(url.lastIndexOf('/') + 1);
-        return fileName.replace("%20", " ");
+
+        // Decode common encodings
+        fileName = fileName.replace("%20", " ")
+                .replace("%28", "(")
+                .replace("%29", ")")
+                .replace("%5B", "[")
+                .replace("%5D", "]");
+
+        // Strip the .mp3 extension if present
+        if (fileName.toLowerCase().endsWith(".mp3")) {
+            fileName = fileName.substring(0, fileName.length() - 4);
+        }
+
+        return fileName;
     }
 
     @Override

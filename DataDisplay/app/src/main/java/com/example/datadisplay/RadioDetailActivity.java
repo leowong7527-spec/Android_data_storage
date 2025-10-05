@@ -1,9 +1,11 @@
 package com.example.datadisplay;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageButton;
@@ -11,11 +13,17 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+
 
 public class RadioDetailActivity extends AppCompatActivity {
 
@@ -50,6 +58,18 @@ public class RadioDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_radio_detail);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            } else {
+                checkNotificationEnabled();
+            }
+        } else {
+            checkNotificationEnabled();
+        }
 
         titleText = findViewById(R.id.titleText);
         playPauseButton = findViewById(R.id.playPauseButton);
@@ -217,5 +237,36 @@ public class RadioDetailActivity extends AppCompatActivity {
         unregisterReceiver(playbackReceiver);
         unregisterReceiver(progressReceiver);
         unregisterReceiver(trackChangedReceiver);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1001) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "POST_NOTIFICATIONS permission granted");
+                checkNotificationEnabled();
+            } else {
+                Log.d(TAG, "POST_NOTIFICATIONS permission denied");
+                checkNotificationEnabled();
+            }
+        }
+    }
+
+    private void checkNotificationEnabled() {
+        NotificationManagerCompat manager = NotificationManagerCompat.from(this);
+        if (!manager.areNotificationsEnabled()) {
+            // Show a dialog first, then open settings
+            new AlertDialog.Builder(this)
+                    .setTitle("Enable Notifications")
+                    .setMessage("Notifications are currently blocked. Enable them to see playback controls.")
+                    .setPositiveButton("Open Settings", (d, w) -> {
+                        Intent intent = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
     }
 }
