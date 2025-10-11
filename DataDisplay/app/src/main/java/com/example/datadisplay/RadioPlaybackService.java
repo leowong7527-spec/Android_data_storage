@@ -29,6 +29,8 @@ public class RadioPlaybackService extends Service {
     private boolean isShuffling = false;
     private boolean isLooping = false;
 
+    private String currentTitle;
+
     public static final String ACTION_PLAY = "ACTION_PLAY";
     public static final String ACTION_PAUSE = "ACTION_PAUSE";
     public static final String ACTION_SHUFFLE = "ACTION_SHUFFLE";
@@ -119,6 +121,7 @@ public class RadioPlaybackService extends Service {
 
         // Initial playback setup
         currentUrl = intent.getStringExtra("url");
+        currentTitle = intent.getStringExtra("title"); // 🔑 store the title
         allUrls = intent.getStringArrayListExtra("allUrls");
         isShuffling = intent.getBooleanExtra("shuffle", false);
         isLooping = intent.getBooleanExtra("loop", false);
@@ -253,8 +256,10 @@ public class RadioPlaybackService extends Service {
                 PendingIntent.FLAG_IMMUTABLE
         );
 
-        String title = extractTitleFromUrl(currentUrl);
-        Log.d(TAG, "Building notification with title: " + title);
+        // ✅ Use the real title if available
+        String title = (currentTitle != null && !currentTitle.isEmpty())
+                ? currentTitle
+                : "Unknown";
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Now Playing")
@@ -289,10 +294,9 @@ public class RadioPlaybackService extends Service {
         Intent intent = new Intent(ACTION_TRACK_CHANGED);
         intent.setPackage(getPackageName());
         intent.putExtra("url", url);
-        intent.putExtra("title", extractTitleFromUrl(url));
+        intent.putExtra("title", currentTitle != null ? currentTitle : "Unknown"); // 🔑
         sendBroadcast(intent);
 
-        // 🔑 Update the notification text with the new song title
         boolean playing = mediaPlayer != null && mediaPlayer.isPlaying();
         showMediaNotification(playing);
     }
