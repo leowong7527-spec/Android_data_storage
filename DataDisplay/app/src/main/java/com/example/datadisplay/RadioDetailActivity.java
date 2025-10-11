@@ -154,8 +154,9 @@ public class RadioDetailActivity extends AppCompatActivity {
     private void startPlaybackService() {
         Intent serviceIntent = new Intent(this, RadioPlaybackService.class);
         serviceIntent.putExtra("url", currentUrl);
-        serviceIntent.putExtra("title", getIntent().getStringExtra("title")); // 🔑 pass the title
+        serviceIntent.putExtra("title", getIntent().getStringExtra("title"));
         serviceIntent.putStringArrayListExtra("allUrls", new ArrayList<>(allUrls));
+        serviceIntent.putStringArrayListExtra("allTitles", getIntent().getStringArrayListExtra("allTitles")); // ✅ forward titles
         serviceIntent.putExtra("shuffle", isShuffling);
         serviceIntent.putExtra("loop", isLooping);
         startService(serviceIntent);

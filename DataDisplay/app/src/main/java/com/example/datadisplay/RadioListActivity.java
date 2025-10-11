@@ -82,12 +82,12 @@ public class RadioListActivity extends AppCompatActivity {
         RadioFileAdapter adapter = new RadioFileAdapter(this, titles);
         listView.setAdapter(adapter);
 
-        // ✅ Completed onItemClick block
         listView.setOnItemClickListener((parent, view, position, id) -> {
             Intent intent = new Intent(this, RadioDetailActivity.class);
             intent.putExtra("title", titles.get(position));
             intent.putExtra("url", urls.get(position));
             intent.putStringArrayListExtra("allUrls", new ArrayList<>(urls));
+            intent.putStringArrayListExtra("allTitles", new ArrayList<>(titles)); // ✅ pass titles too
             startActivity(intent);
         });
     }

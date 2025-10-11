@@ -25,6 +25,9 @@ public class RadioPlaybackService extends Service {
     public static final String CHANNEL_ID = "RadioPlaybackChannelV2";
     private MediaPlayer mediaPlayer;
     private List<String> allUrls;
+
+    private List<String> allTitles;   // ✅ new
+
     private String currentUrl;
     private boolean isShuffling = false;
     private boolean isLooping = false;
@@ -130,28 +133,12 @@ public class RadioPlaybackService extends Service {
         currentUrl = intent.getStringExtra("url");
         currentTitle = intent.getStringExtra("title");
         allUrls = intent.getStringArrayListExtra("allUrls");
+        allTitles = intent.getStringArrayListExtra("allTitles"); // ✅
         isShuffling = intent.getBooleanExtra("shuffle", false);
         isLooping = intent.getBooleanExtra("loop", false);
 
         playTrack(currentUrl);
         return START_STICKY;
-    }
-
-    private void playPreviousTrack() {
-        if (isShuffling) {
-            playNextRandomTrack();
-            return;
-        }
-        if (allUrls == null || allUrls.isEmpty()) return;
-
-        int currentIndex = allUrls.indexOf(currentUrl);
-        if (currentIndex == -1) currentIndex = 0;
-
-        int prevIndex = (currentIndex - 1 + allUrls.size()) % allUrls.size();
-        String prevUrl = allUrls.get(prevIndex);
-        currentUrl = prevUrl;
-
-        playTrack(prevUrl);
     }
 
     private void playNextTrack() {
@@ -165,11 +152,60 @@ public class RadioPlaybackService extends Service {
         if (currentIndex == -1) currentIndex = 0;
 
         int nextIndex = (currentIndex + 1) % allUrls.size();
-        String nextUrl = allUrls.get(nextIndex);
+        currentUrl = allUrls.get(nextIndex);
+
+        // ✅ Update title
+        if (allTitles != null && nextIndex < allTitles.size()) {
+            currentTitle = allTitles.get(nextIndex);
+        }
+
+        playTrack(currentUrl);
+    }
+
+    private void playPreviousTrack() {
+        if (isShuffling) {
+            playNextRandomTrack();
+            return;
+        }
+        if (allUrls == null || allUrls.isEmpty()) return;
+
+        int currentIndex = allUrls.indexOf(currentUrl);
+        if (currentIndex == -1) currentIndex = 0;
+
+        int prevIndex = (currentIndex - 1 + allUrls.size()) % allUrls.size();
+        currentUrl = allUrls.get(prevIndex);
+
+        // ✅ Update title
+        if (allTitles != null && prevIndex < allTitles.size()) {
+            currentTitle = allTitles.get(prevIndex);
+        }
+
+        playTrack(currentUrl);
+    }
+
+    private void playNextRandomTrack() {
+        if (allUrls == null || allUrls.isEmpty()) return;
+        int randomIndex;
+        String nextUrl;
+        do {
+            randomIndex = new Random().nextInt(allUrls.size());
+            nextUrl = allUrls.get(randomIndex);
+        } while (nextUrl.equals(currentUrl));
+
         currentUrl = nextUrl;
+
+        // ✅ Update title
+        if (allTitles != null && randomIndex < allTitles.size()) {
+            currentTitle = allTitles.get(randomIndex);
+        }
 
         playTrack(nextUrl);
     }
+
+
+
+
+
 
     private void playTrack(String url) {
         try {
@@ -216,16 +252,6 @@ public class RadioPlaybackService extends Service {
         }
     }
 
-    private void playNextRandomTrack() {
-        if (allUrls == null || allUrls.isEmpty()) return;
-        String nextUrl;
-        do {
-            int randomIndex = new Random().nextInt(allUrls.size());
-            nextUrl = allUrls.get(randomIndex);
-        } while (nextUrl.equals(currentUrl));
-        currentUrl = nextUrl;
-        playTrack(nextUrl);
-    }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -306,27 +332,6 @@ public class RadioPlaybackService extends Service {
 
         boolean playing = mediaPlayer != null && mediaPlayer.isPlaying();
         showMediaNotification(playing);
-    }
-
-    private String extractTitleFromUrl(String url) {
-        if (url == null) return "Unknown";
-
-        // Get the file name portion after the last '/'
-        String fileName = url.substring(url.lastIndexOf('/') + 1);
-
-        // Decode common encodings
-        fileName = fileName.replace("%20", " ")
-                .replace("%28", "(")
-                .replace("%29", ")")
-                .replace("%5B", "[")
-                .replace("%5D", "]");
-
-        // Strip the .mp3 extension if present
-        if (fileName.toLowerCase().endsWith(".mp3")) {
-            fileName = fileName.substring(0, fileName.length() - 4);
-        }
-
-        return fileName;
     }
 
     @Override
