@@ -27,4 +27,10 @@
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
+    <string name="comic_page">Comic page</string>
+
+
+    <string name="unlock_zoom">Zoom</string>
+
+
 </resources>
