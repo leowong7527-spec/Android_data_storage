@@ -62,14 +62,8 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
                         for (PhotoFolder folder : category.folders) {
                             Log.d("ComicListActivity", "Checking folder: " + folder.name);
                             if (folder.name.equals(folderName)) {
-                                String baseUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_image/";
-                                for (String imageName : folder.images) {
-                                    String fullUrl = baseUrl
-                                            + encodePathSegment(category.name) + "/"
-                                            + encodePathSegment(folder.name) + "/"
-                                            + encodePathSegment(imageName);
-                                    Log.d("ComicListActivity", "Adding image URL: " + fullUrl);
-                                    imageUrls.add(fullUrl);
+                                for (String imageUrl : folder.images) {
+                                    imageUrls.add(imageUrl);  // already a full link
                                 }
                                 break;
                             }
