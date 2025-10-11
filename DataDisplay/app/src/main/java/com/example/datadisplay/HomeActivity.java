@@ -152,9 +152,10 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void handleMp3Navigation() {
-        if (cachedMp3JsonString != null && !cachedMp3JsonString.isEmpty()) {
+        File cacheFile = new File(getCacheDir(), "mp3_data.json");
+        if (cacheFile.exists()) {
             Intent intent = new Intent(HomeActivity.this, RadioCategoryActivity.class);
-            intent.putExtra("json", cachedMp3JsonString);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath()); // ✅
             startActivity(intent);
         } else {
             if (isMp3DownloadComplete) {
@@ -171,9 +172,11 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void handleComicNavigation() {
-        if (cachedComicJsonString != null && !cachedComicJsonString.isEmpty()) {
+        File cacheFile = new File(getCacheDir(), "comic_data.json");
+
+        if (cacheFile.exists()) {
             Intent intent = new Intent(HomeActivity.this, ComicCategoryActivity.class);
-            intent.putExtra("json", cachedComicJsonString);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath()); // ✅ pass path only
             startActivity(intent);
         } else {
             if (isComicDownloadComplete) {

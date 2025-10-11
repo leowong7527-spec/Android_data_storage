@@ -65,7 +65,14 @@ public class RadioPlaybackService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
 
-        String action = intent != null ? intent.getAction() : null;
+        // 🔒 Defensive check
+        if (intent == null) {
+            // Service was restarted by the system with no intent
+            // Decide what to do: keep playing, or just stay alive
+            return START_STICKY;
+        }
+
+        String action = intent.getAction();
         if (action != null) {
             switch (action) {
                 case ACTION_PLAY:
@@ -119,9 +126,9 @@ public class RadioPlaybackService extends Service {
             }
         }
 
-        // Initial playback setup
+        // Initial playback setup (only runs if intent != null)
         currentUrl = intent.getStringExtra("url");
-        currentTitle = intent.getStringExtra("title"); // 🔑 store the title
+        currentTitle = intent.getStringExtra("title");
         allUrls = intent.getStringArrayListExtra("allUrls");
         isShuffling = intent.getBooleanExtra("shuffle", false);
         isLooping = intent.getBooleanExtra("loop", false);

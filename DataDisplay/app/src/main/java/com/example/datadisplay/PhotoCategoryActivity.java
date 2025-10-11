@@ -2,7 +2,6 @@ package com.example.datadisplay;
 
 import android.content.Intent;
 import android.os.Bundle;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -10,24 +9,22 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.datadisplay.adapters.PhotoCategoryAdapter;
 import com.example.datadisplay.models.PhotoCategory;
 import com.example.datadisplay.models.PhotoData;
-import com.example.datadisplay.utils.PhotoCacheHelper;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 
-public class PhotoCategoryActivity extends AppCompatActivity implements PhotoCategoryAdapter.OnCategoryClickListener {
+public class PhotoCategoryActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private final String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/photo_data.json";
+    private File cacheFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +34,7 @@ public class PhotoCategoryActivity extends AppCompatActivity implements PhotoCat
         recyclerView = findViewById(R.id.categoryRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        cacheFile = new File(getCacheDir(), "photo_data.json");
         fetchCategories();
     }
 
@@ -47,28 +45,21 @@ public class PhotoCategoryActivity extends AppCompatActivity implements PhotoCat
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                String cachedJson = PhotoCacheHelper.loadJsonFromCache(PhotoCategoryActivity.this);
-                if (cachedJson != null) {
-                    runOnUiThread(() -> {
-                        setupRecyclerWithJson(cachedJson);
-                        Snackbar.make(recyclerView,
-                                        "Showing cached categories (offline mode)",
-                                        Snackbar.LENGTH_INDEFINITE)
-                                .setAction("Retry", v -> fetchCategories())
-                                .show();
-                    });
-                } else {
-                    runOnUiThread(() -> Snackbar.make(recyclerView,
-                            "Failed to load categories",
-                            Snackbar.LENGTH_LONG).show());
-                }
+                runOnUiThread(() -> Snackbar.make(recyclerView,
+                        "Failed to load categories",
+                        Snackbar.LENGTH_LONG).show());
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String json = response.body().string();
-                    PhotoCacheHelper.saveJsonToCache(PhotoCategoryActivity.this, json);
+
+                    // Save JSON to cache file
+                    try (FileWriter writer = new FileWriter(cacheFile)) {
+                        writer.write(json);
+                    }
+
                     runOnUiThread(() -> setupRecyclerWithJson(json));
                 }
             }
@@ -87,15 +78,10 @@ public class PhotoCategoryActivity extends AppCompatActivity implements PhotoCat
         PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categoryNames, categoryName -> {
             Intent intent = new Intent(PhotoCategoryActivity.this, PhotoFolderActivity.class);
             intent.putExtra("category", categoryName);
-            intent.putExtra("json", json);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath()); // ✅ pass path only
             startActivity(intent);
         });
 
         recyclerView.setAdapter(adapter);
-    }
-
-    @Override
-    public void onCategoryClick(String categoryName) {
-        // handled in adapter lambda
     }
 }

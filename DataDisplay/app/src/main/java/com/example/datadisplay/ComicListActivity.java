@@ -14,8 +14,9 @@ import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,15 +25,7 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
     private List<String> imageUrls;
     private String categoryName;
     private String folderName;
-    private String json;
-
-    private String encodePathSegment(String segment) {
-        try {
-            return URLEncoder.encode(segment, "UTF-8").replace("+", "%20");
-        } catch (UnsupportedEncodingException e) {
-            return segment;
-        }
-    }
+    private String jsonPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,33 +37,30 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
 
         categoryName = getIntent().getStringExtra("category");
         folderName = getIntent().getStringExtra("folder");
-        json = getIntent().getStringExtra("json");
-
-        Log.d("ComicListActivity", "Category: " + categoryName + ", Folder: " + folderName);
-        Log.d("ComicListActivity", "JSON: " + json);
+        jsonPath = getIntent().getStringExtra("json_path");
 
         imageUrls = new ArrayList<>();
 
-        if (json != null && categoryName != null && folderName != null) {
-            Gson gson = new Gson();
-            PhotoData comicData = gson.fromJson(json, PhotoData.class);
+        if (jsonPath != null && categoryName != null && folderName != null) {
+            try {
+                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
+                PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
 
-            if (comicData != null && comicData.categories != null) {
-                for (PhotoCategory category : comicData.categories) {
-                    Log.d("ComicListActivity", "Checking category: " + category.name);
-                    if (category.name.equals(categoryName)) {
-                        for (PhotoFolder folder : category.folders) {
-                            Log.d("ComicListActivity", "Checking folder: " + folder.name);
-                            if (folder.name.equals(folderName)) {
-                                for (String imageUrl : folder.images) {
-                                    imageUrls.add(imageUrl);  // already a full link
+                if (comicData != null && comicData.categories != null) {
+                    for (PhotoCategory category : comicData.categories) {
+                        if (category.name.equals(categoryName)) {
+                            for (PhotoFolder folder : category.folders) {
+                                if (folder.name.equals(folderName)) {
+                                    imageUrls.addAll(folder.images);
+                                    break;
                                 }
-                                break;
                             }
+                            break;
                         }
-                        break;
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 

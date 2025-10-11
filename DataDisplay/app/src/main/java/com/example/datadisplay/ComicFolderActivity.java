@@ -6,12 +6,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.datadisplay.adapters.PhotoFolderAdapter; // reuse
+import com.example.datadisplay.adapters.PhotoFolderAdapter;
 import com.example.datadisplay.models.PhotoCategory;
 import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +22,7 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
 
     private List<PhotoFolder> folderList;
     private String categoryName;
-    private String json;
+    private String jsonPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,19 +33,23 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         categoryName = getIntent().getStringExtra("category");
-        json = getIntent().getStringExtra("json");
+        jsonPath = getIntent().getStringExtra("json_path");
 
         folderList = new ArrayList<>();
 
-        if (json != null && categoryName != null) {
-            Gson gson = new Gson();
-            PhotoData comicData = gson.fromJson(json, PhotoData.class);
+        if (jsonPath != null && categoryName != null) {
+            try {
+                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
+                PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
 
-            for (PhotoCategory category : comicData.categories) {
-                if (category.name.equals(categoryName)) {
-                    folderList = category.folders;
-                    break;
+                for (PhotoCategory category : comicData.categories) {
+                    if (category.name.equals(categoryName)) {
+                        folderList = category.folders;
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -55,7 +62,7 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
         Intent intent = new Intent(this, ComicListActivity.class);
         intent.putExtra("category", categoryName);
         intent.putExtra("folder", folderName);
-        intent.putExtra("json", json);
+        intent.putExtra("json_path", jsonPath); // pass file path only
         startActivity(intent);
     }
 }

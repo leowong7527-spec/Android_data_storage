@@ -6,12 +6,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.datadisplay.adapters.PhotoCategoryAdapter; // reuse
+import com.example.datadisplay.adapters.PhotoCategoryAdapter;
 import com.example.datadisplay.models.PhotoCategory;
 import com.example.datadisplay.models.PhotoData;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,15 +24,17 @@ public class ComicCategoryActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private final String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json";
+    private File cacheFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_photo_category); // reuse same layout
+        setContentView(R.layout.activity_photo_category);
 
         recyclerView = findViewById(R.id.categoryRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        cacheFile = new File(getCacheDir(), "comic_data.json");
         fetchCategories();
     }
 
@@ -50,6 +54,12 @@ public class ComicCategoryActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String json = response.body().string();
+
+                    // Save JSON to cache file
+                    try (FileWriter writer = new FileWriter(cacheFile)) {
+                        writer.write(json);
+                    }
+
                     runOnUiThread(() -> setupRecyclerWithJson(json));
                 }
             }
@@ -68,7 +78,7 @@ public class ComicCategoryActivity extends AppCompatActivity {
         PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categoryNames, categoryName -> {
             Intent intent = new Intent(ComicCategoryActivity.this, ComicFolderActivity.class);
             intent.putExtra("category", categoryName);
-            intent.putExtra("json", json);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath()); // pass file path only
             startActivity(intent);
         });
 

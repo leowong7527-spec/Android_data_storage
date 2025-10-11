@@ -12,6 +12,9 @@ import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +22,7 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
 
     private List<PhotoFolder> folderList;
     private String categoryName;
-    private String json;
+    private String jsonPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,19 +33,23 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         categoryName = getIntent().getStringExtra("category");
-        json = getIntent().getStringExtra("json");
+        jsonPath = getIntent().getStringExtra("json_path");
 
         folderList = new ArrayList<>();
 
-        if (json != null && categoryName != null) {
-            Gson gson = new Gson();
-            PhotoData photoData = gson.fromJson(json, PhotoData.class);
+        if (jsonPath != null && categoryName != null) {
+            try {
+                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
+                PhotoData photoData = new Gson().fromJson(json, PhotoData.class);
 
-            for (PhotoCategory category : photoData.categories) {
-                if (category.name.equals(categoryName)) {
-                    folderList = category.folders;
-                    break;
+                for (PhotoCategory category : photoData.categories) {
+                    if (category.name.equals(categoryName)) {
+                        folderList = category.folders;
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -55,7 +62,7 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
         Intent intent = new Intent(this, PhotoListActivity.class);
         intent.putExtra("category", categoryName);
         intent.putExtra("folder", folderName);
-        intent.putExtra("json", json);
+        intent.putExtra("json_path", jsonPath); // ✅ pass path only
         startActivity(intent);
     }
 }
