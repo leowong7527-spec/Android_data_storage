@@ -28,15 +28,6 @@ public class PhotoListActivity extends AppCompatActivity implements PhotoGridAda
     private String folderName;
     private String json;
 
-    private String encodePathSegment(String segment) {
-        try {
-            return URLEncoder.encode(segment, "UTF-8").replace("+", "%20");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return segment;
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,13 +66,8 @@ public class PhotoListActivity extends AppCompatActivity implements PhotoGridAda
                 if (category.name.equals(categoryName)) {
                     for (PhotoFolder folder : category.folders) {
                         if (folder.name.equals(folderName)) {
-                            String baseUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/photo_image/";
-                            for (String imageName : folder.images) {
-                                String encodedCategory = encodePathSegment(category.name);
-                                String encodedFolder = encodePathSegment(folder.name);
-                                String encodedImage = encodePathSegment(imageName);
-                                String fullUrl = baseUrl + encodedCategory + "/" + encodedFolder + "/" + encodedImage;
-                                imageUrls.add(fullUrl);
+                            for (String imageUrl : folder.images) {
+                                imageUrls.add(imageUrl);  // already a full link
                             }
                             break;
                         }
