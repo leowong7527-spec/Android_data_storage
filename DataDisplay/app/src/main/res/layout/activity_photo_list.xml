@@ -10,7 +10,7 @@
         android:padding="4dp"
         android:clipToPadding="false"/>
 
-    <!-- Fullscreen viewer overlay (hidden by default) -->
+    <!-- Fullscreen viewer overlay -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/fullscreenViewPager"
         android:layout_width="match_parent"

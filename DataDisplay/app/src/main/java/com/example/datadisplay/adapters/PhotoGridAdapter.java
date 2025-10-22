@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.datadisplay.R;
-import com.example.datadisplay.utils.PhotoCacheHelper;
+import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
@@ -42,8 +42,14 @@ public class PhotoGridAdapter extends RecyclerView.Adapter<PhotoGridAdapter.Phot
     public void onBindViewHolder(@NonNull PhotoViewHolder holder, int position) {
         String imageUrl = imageUrls.get(position);
 
-        // Use helper to load + cache image
-        PhotoCacheHelper.loadImage(context, imageUrl, holder.imageView);
+        // Load thumbnail with Picasso (handles caching automatically)
+        Picasso.get()
+                .load(imageUrl)
+                .placeholder(R.drawable.outline_error_24) // optional placeholder
+                .error(R.drawable.outline_error_24)             // optional error image
+                .fit()
+                .centerCrop()
+                .into(holder.imageView);
 
         // Handle click
         holder.itemView.setOnClickListener(v -> {
