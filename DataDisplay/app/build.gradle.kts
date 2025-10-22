@@ -63,6 +63,8 @@ dependencies {
     implementation("com.github.Baseflow:PhotoView:2.3.0")
     implementation("com.davemorrissey.labs:subsampling-scale-image-view:3.10.0")
 
+    implementation("com.squareup.picasso:picasso:2.8")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
