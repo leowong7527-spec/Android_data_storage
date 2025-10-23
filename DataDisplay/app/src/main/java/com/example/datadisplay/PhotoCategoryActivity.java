@@ -61,9 +61,9 @@ public class PhotoCategoryActivity extends AppCompatActivity {
         }
 
         PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categories, category -> {
-            // ✅ Pass full object as JSON
+            // ✅ Pass only lightweight identifiers
             Intent intent = new Intent(PhotoCategoryActivity.this, PhotoFolderActivity.class);
-            intent.putExtra("category_json", new Gson().toJson(category));
+            intent.putExtra("category_name", category.name);
             intent.putExtra("json_path", cacheFile.getAbsolutePath());
             startActivity(intent);
         });

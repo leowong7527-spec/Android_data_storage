@@ -60,7 +60,6 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.media:media:1.6.0")
 
-    implementation("com.github.Baseflow:PhotoView:2.3.0")
 
     implementation("com.davemorrissey.labs:subsampling-scale-image-view:3.10.0")
 

@@ -2,6 +2,8 @@ package com.example.datadisplay;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,12 +17,16 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
 import okhttp3.*;
 
 public class ComicCategoryActivity extends AppCompatActivity {
+
+    private static final String TAG = "ComicCategoryActivity";
 
     private RecyclerView recyclerView;
     private final String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json";
@@ -35,6 +41,19 @@ public class ComicCategoryActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         cacheFile = new File(getCacheDir(), "comic_data.json");
+
+        // ✅ 1. Load from cache immediately if available
+        if (cacheFile.exists()) {
+            try {
+                String cachedJson = new String(Files.readAllBytes(cacheFile.toPath()), StandardCharsets.UTF_8);
+                setupRecyclerWithJson(cachedJson);
+                Log.d(TAG, "Loaded categories from cache");
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to read cache", e);
+            }
+        }
+
+        // ✅ 2. Always refresh in background
         fetchCategories();
     }
 
@@ -45,8 +64,9 @@ public class ComicCategoryActivity extends AppCompatActivity {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.e(TAG, "Network fetch failed", e);
                 runOnUiThread(() -> Snackbar.make(recyclerView,
-                        "Failed to load comic categories",
+                        "Failed to refresh comic categories",
                         Snackbar.LENGTH_LONG).show());
             }
 
@@ -54,13 +74,18 @@ public class ComicCategoryActivity extends AppCompatActivity {
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     String json = response.body().string();
+                    Log.d(TAG, "Fetched fresh JSON, length=" + json.length());
 
-                    // Save JSON to cache file
+                    // Save JSON to cache
                     try (FileWriter writer = new FileWriter(cacheFile)) {
                         writer.write(json);
+                        Log.d(TAG, "Cache updated at " + cacheFile.getAbsolutePath());
                     }
 
+                    // Update UI with fresh data
                     runOnUiThread(() -> setupRecyclerWithJson(json));
+                } else {
+                    Log.e(TAG, "Response not successful, code=" + response.code());
                 }
             }
         });
@@ -75,10 +100,10 @@ public class ComicCategoryActivity extends AppCompatActivity {
             categories.addAll(comicData.categories);
         }
 
-        // ✅ Pass full objects into adapter
         PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categories, category -> {
+            Log.d(TAG, "Category clicked: " + category.name);
             Intent intent = new Intent(ComicCategoryActivity.this, ComicFolderActivity.class);
-            intent.putExtra("category_json", new Gson().toJson(category)); // pass full object
+            intent.putExtra("category_name", category.name);   // ✅ only pass name
             intent.putExtra("json_path", cacheFile.getAbsolutePath());
             startActivity(intent);
         });

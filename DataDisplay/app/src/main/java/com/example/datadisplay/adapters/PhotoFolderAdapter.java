@@ -18,9 +18,9 @@ public class PhotoFolderAdapter extends RecyclerView.Adapter<PhotoFolderAdapter.
     private final List<PhotoFolder> folders;
     private final OnFolderClickListener listener;
 
-    // ✅ Change interface to pass the whole PhotoFolder object
+    // ✅ Change interface to pass only the folder name (lightweight)
     public interface OnFolderClickListener {
-        void onFolderClick(PhotoFolder folder);
+        void onFolderClick(String folderName);
     }
 
     public PhotoFolderAdapter(List<PhotoFolder> folders, OnFolderClickListener listener) {
@@ -41,8 +41,8 @@ public class PhotoFolderAdapter extends RecyclerView.Adapter<PhotoFolderAdapter.
         PhotoFolder folder = folders.get(position);
         holder.textView.setText(folder.name);
 
-        // ✅ Pass the whole object instead of just the name
-        holder.itemView.setOnClickListener(v -> listener.onFolderClick(folder));
+        // ✅ Pass only the folder name
+        holder.itemView.setOnClickListener(v -> listener.onFolderClick(folder.name));
     }
 
     @Override
