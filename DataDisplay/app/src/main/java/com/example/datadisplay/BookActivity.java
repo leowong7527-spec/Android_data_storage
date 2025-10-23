@@ -28,6 +28,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
+import android.util.JsonReader;
+import android.util.JsonReader;
+import android.util.JsonToken;
+import java.nio.charset.StandardCharsets;
+
 public class BookActivity extends AppCompatActivity {
 
     ListView listView;
@@ -54,12 +59,17 @@ public class BookActivity extends AppCompatActivity {
         adapter = new ArrayAdapter<>(this, R.layout.list_item, userList);
         listView.setAdapter(adapter);
 
-        // ✅ Get JSON string from HomeActivity
-        String jsonData = loadJsonFromCache("data.json");
-        if (jsonData != null && !jsonData.isEmpty()) {
-            parseJson(jsonData);
+        // ✅ Get the file path passed from HomeActivity
+        String jsonPath = getIntent().getStringExtra("json_path");
+        if (jsonPath != null) {
+            File jsonFile = new File(jsonPath);
+            if (jsonFile.exists()) {
+                parseJson(jsonFile);   // stream parse directly from file
+            } else {
+                Log.e("BookActivity", "JSON file not found at " + jsonPath);
+            }
         } else {
-            Log.e("BookActivity", "No JSON data received");
+            Log.e("BookActivity", "No json_path extra received");
         }
 
         // Toggle show/hide tags
@@ -137,41 +147,80 @@ public class BookActivity extends AppCompatActivity {
             return true;
         });
     }
+    
+    // New parseJson that streams from file
+    private void parseJson(File jsonFile) {
+        try (FileInputStream fis = new FileInputStream(jsonFile);
+             InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
+             JsonReader reader = new JsonReader(isr)) {
 
-    private void parseJson(String jsonData) {
-        try {
-            booksArray = new JSONArray(jsonData);
+            booksArray = new JSONArray();
             userList.clear();
             Set<String> uniqueTags = new HashSet<>();
 
-            for (int i = 0; i < booksArray.length(); i++) {
-                JSONObject obj = booksArray.getJSONObject(i);
-                String name = obj.optString("name", "Unknown");
+            reader.beginArray();
+            while (reader.hasNext()) {
+                reader.beginObject();
 
-                // Collect tags
-                if (obj.has("tag")) {
-                    Object tagObj = obj.get("tag");
-                    if (tagObj instanceof JSONArray) {
-                        JSONArray tagArray = (JSONArray) tagObj;
-                        for (int j = 0; j < tagArray.length(); j++) {
-                            uniqueTags.add(tagArray.optString(j));
-                        }
-                    } else {
-                        uniqueTags.add(obj.optString("tag"));
+                String name = "Unknown";
+                String author = "";
+                String content = "";
+                ArrayList<String> tags = new ArrayList<>();
+
+                while (reader.hasNext()) {
+                    String key = reader.nextName();
+                    switch (key) {
+                        case "name":
+                            name = reader.nextString();
+                            break;
+                        case "author":
+                            author = reader.nextString();
+                            break;
+                        case "content":
+                            content = reader.nextString();
+                            break;
+                        case "tag":
+                            if (reader.peek() == JsonToken.BEGIN_ARRAY) {  // ✅ correct token
+                                reader.beginArray();
+                                while (reader.hasNext()) {
+                                    String t = reader.nextString();
+                                    tags.add(t);
+                                    uniqueTags.add(t);
+                                }
+                                reader.endArray();
+                            } else {
+                                String t = reader.nextString();
+                                tags.add(t);
+                                uniqueTags.add(t);
+                            }
+                            break;
+                        default:
+                            reader.skipValue();
                     }
                 }
 
-                String displayName = limitWords(name, 10);
-                userList.add(displayName);
+                JSONObject obj = new JSONObject();
+                obj.put("name", name);
+                obj.put("author", author);
+                obj.put("content", content);
+                if (!tags.isEmpty()) obj.put("tag", new JSONArray(tags));
+                booksArray.put(obj);
+
+                userList.add(limitWords(name, 10));
+
+                reader.endObject();
             }
+            reader.endArray();
 
             adapter.notifyDataSetChanged();
             setupTags(uniqueTags);
 
         } catch (Exception e) {
-            Log.e("JSON_PARSE", "Error parsing JSON", e);
+            Log.e("JSON_PARSE", "Error parsing JSON with JsonReader", e);
         }
     }
+
+
 
     private String limitWords(String text, int maxWords) {
         String[] words = text.split("\\s+");
