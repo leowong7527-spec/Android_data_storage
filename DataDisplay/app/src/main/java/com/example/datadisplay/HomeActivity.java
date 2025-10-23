@@ -76,7 +76,7 @@ public class HomeActivity extends AppCompatActivity {
 
         //book
         downloadJsonInBackground(
-                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json",
+                "https://drive.google.com/uc?export=download&id=1tjla5WD0elmmpYQkYcIY1ApCoYPcUxQ-",
                 "data.json",
                 false
         );
