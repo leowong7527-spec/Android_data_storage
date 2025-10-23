@@ -2,6 +2,7 @@ package com.example.datadisplay;
 
 import android.content.Intent;
 import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,8 +14,8 @@ import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,23 +35,33 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
 
         categoryName = getIntent().getStringExtra("category");
         jsonPath = getIntent().getStringExtra("json_path");
+        String folderJson = getIntent().getStringExtra("folder_json");
 
         folderList = new ArrayList<>();
 
-        if (jsonPath != null && categoryName != null) {
-            try {
+        try {
+            if (folderJson != null) {
+                // ✅ Coming from a subfolder → just deserialize and use its children
+                PhotoFolder currentFolder = new Gson().fromJson(folderJson, PhotoFolder.class);
+                if (currentFolder != null && currentFolder.folders != null) {
+                    folderList = currentFolder.folders;
+                }
+            } else if (jsonPath != null && categoryName != null) {
+                // ✅ First entry point → load from root JSON
                 String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
                 PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
 
-                for (PhotoCategory category : comicData.categories) {
-                    if (category.name.equals(categoryName)) {
-                        folderList = category.folders;
-                        break;
+                if (comicData != null && comicData.categories != null) {
+                    for (PhotoCategory category : comicData.categories) {
+                        if (category.name.equals(categoryName)) {
+                            folderList = category.folders != null ? category.folders : new ArrayList<>();
+                            break;
+                        }
                     }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         PhotoFolderAdapter adapter = new PhotoFolderAdapter(folderList, this);
@@ -58,11 +69,24 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
     }
 
     @Override
-    public void onFolderClick(String folderName) {
-        Intent intent = new Intent(this, ComicListActivity.class);
-        intent.putExtra("category", categoryName);
-        intent.putExtra("folder", folderName);
-        intent.putExtra("json_path", jsonPath); // pass file path only
-        startActivity(intent);
+    public void onFolderClick(PhotoFolder clickedFolder) {
+        Gson gson = new Gson();
+        String folderJson = gson.toJson(clickedFolder);
+
+        if (clickedFolder.folders != null && !clickedFolder.folders.isEmpty()) {
+            // ✅ Has subfolders → open ComicFolderActivity again
+            Intent intent = new Intent(this, ComicFolderActivity.class);
+            intent.putExtra("category", categoryName);
+            intent.putExtra("folder_json", folderJson);
+            intent.putExtra("json_path", jsonPath);
+            startActivity(intent);
+        } else {
+            // ✅ No subfolders → open ComicListActivity
+            Intent intent = new Intent(this, ComicListActivity.class);
+            intent.putExtra("category", categoryName);
+            intent.putExtra("folder_json", folderJson);
+            intent.putExtra("json_path", jsonPath);
+            startActivity(intent);
+        }
     }
 }

@@ -4,10 +4,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.datadisplay.R;
 import com.example.datadisplay.models.PhotoFolder;
+
 import java.util.List;
 
 public class PhotoFolderAdapter extends RecyclerView.Adapter<PhotoFolderAdapter.FolderViewHolder> {
@@ -15,8 +18,9 @@ public class PhotoFolderAdapter extends RecyclerView.Adapter<PhotoFolderAdapter.
     private final List<PhotoFolder> folders;
     private final OnFolderClickListener listener;
 
+    // ✅ Change interface to pass the whole PhotoFolder object
     public interface OnFolderClickListener {
-        void onFolderClick(String folderName);
+        void onFolderClick(PhotoFolder folder);
     }
 
     public PhotoFolderAdapter(List<PhotoFolder> folders, OnFolderClickListener listener) {
@@ -27,15 +31,18 @@ public class PhotoFolderAdapter extends RecyclerView.Adapter<PhotoFolderAdapter.
     @NonNull
     @Override
     public FolderViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_folder, parent, false);
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_folder, parent, false);
         return new FolderViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull FolderViewHolder holder, int position) {
-        String folderName = folders.get(position).name;
-        holder.textView.setText(folderName);
-        holder.itemView.setOnClickListener(v -> listener.onFolderClick(folderName));
+        PhotoFolder folder = folders.get(position);
+        holder.textView.setText(folder.name);
+
+        // ✅ Pass the whole object instead of just the name
+        holder.itemView.setOnClickListener(v -> listener.onFolderClick(folder));
     }
 
     @Override

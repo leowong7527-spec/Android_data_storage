@@ -24,8 +24,9 @@ import java.util.List;
 
 public class ComicGridAdapter extends RecyclerView.Adapter<ComicGridAdapter.ComicViewHolder> {
 
+    // ✅ Pass the actual image URL instead of just position
     public interface OnItemClickListener {
-        void onItemClick(int position);
+        void onItemClick(String imageUrl, int position);
     }
 
     private final Context context;
@@ -67,12 +68,11 @@ public class ComicGridAdapter extends RecyclerView.Adapter<ComicGridAdapter.Comi
                     }
                 });
 
-        // Optional click listener for external use
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 int pos = holder.getBindingAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
-                    listener.onItemClick(pos);
+                    listener.onItemClick(imageUrl, pos);
                 }
             }
         });
@@ -80,7 +80,7 @@ public class ComicGridAdapter extends RecyclerView.Adapter<ComicGridAdapter.Comi
 
     @Override
     public int getItemCount() {
-        return imageUrls.size();
+        return imageUrls != null ? imageUrls.size() : 0;
     }
 
     static class ComicViewHolder extends RecyclerView.ViewHolder {

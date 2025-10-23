@@ -70,15 +70,16 @@ public class ComicCategoryActivity extends AppCompatActivity {
         Gson gson = new Gson();
         PhotoData comicData = gson.fromJson(json, PhotoData.class);
 
-        List<String> categoryNames = new ArrayList<>();
-        for (PhotoCategory category : comicData.categories) {
-            categoryNames.add(category.name);
+        List<PhotoCategory> categories = new ArrayList<>();
+        if (comicData != null && comicData.categories != null) {
+            categories.addAll(comicData.categories);
         }
 
-        PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categoryNames, categoryName -> {
+        // ✅ Pass full objects into adapter
+        PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categories, category -> {
             Intent intent = new Intent(ComicCategoryActivity.this, ComicFolderActivity.class);
-            intent.putExtra("category", categoryName);
-            intent.putExtra("json_path", cacheFile.getAbsolutePath()); // pass file path only
+            intent.putExtra("category_json", new Gson().toJson(category)); // pass full object
+            intent.putExtra("json_path", cacheFile.getAbsolutePath());
             startActivity(intent);
         });
 

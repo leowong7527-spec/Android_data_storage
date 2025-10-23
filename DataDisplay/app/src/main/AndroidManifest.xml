@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools" >
     <!-- 👇 Add this line here -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -19,9 +19,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DataDisplay">
+        android:theme="@style/Theme.DataDisplay" >
         <activity
-            android:name=".FullScreenImageActivity"
+            android:name=".ImagePagerActivity"
             android:exported="false" />
         <activity
             android:name=".ComicListActivity"
@@ -61,7 +61,7 @@
             android:exported="false" />
         <activity
             android:name=".HomeActivity"
-            android:exported="true">
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

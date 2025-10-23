@@ -34,10 +34,14 @@ public class HomeActivity extends AppCompatActivity {
     private String cachedBookJsonString;
     private String cachedComicJsonString;
 
+    private String cachedPhotoJsonString;   // ✅ new
+
     private boolean isMp3DownloadComplete = false;
     private boolean isBookDownloadComplete = false;
 
     private boolean isComicDownloadComplete = false;
+
+    private boolean isPhotoDownloadComplete = false; // ✅ new
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +87,9 @@ public class HomeActivity extends AppCompatActivity {
                 false
         );
 
+        // ✅ preload photos
+        preloadPhotoData();
+
         // Navigation drawer clicks
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -93,7 +100,7 @@ public class HomeActivity extends AppCompatActivity {
             } else if (id == R.id.nav_settings) {
                 startActivity(new Intent(this, SettingsActivity.class));
             } else if (id == R.id.nav_photos) {
-                startActivity(new Intent(this, PhotoCategoryActivity.class));
+                handlePhotoNavigation();
             } else if (id == R.id.nav_mp3) {
                 handleMp3Navigation();
             }else if (id == R.id.nav_comics) {
@@ -130,7 +137,11 @@ public class HomeActivity extends AppCompatActivity {
                 } else if ("comic_data.json".equals(filename)) {
                     cachedComicJsonString = jsonString;
                     isComicDownloadComplete = true;
+                } else if ("photo_data.json".equals(filename)) {   // ✅ new
+                    cachedPhotoJsonString = jsonString;
+                    isPhotoDownloadComplete = true;
                 }
+
 
                 Log.d(TAG, filename + " download complete and cached.");
 
@@ -143,7 +154,10 @@ public class HomeActivity extends AppCompatActivity {
                     isBookDownloadComplete = true;
                 } else if ("comic_data.json".equals(filename)) {
                     isComicDownloadComplete = true;
+                } else if ("photo_data.json".equals(filename)) {   // ✅ new
+                    isPhotoDownloadComplete = true;
                 }
+
 
                 runOnUiThread(() ->
                         Toast.makeText(HomeActivity.this, "Error downloading " + filename, Toast.LENGTH_SHORT).show());
@@ -221,4 +235,29 @@ public class HomeActivity extends AppCompatActivity {
             return null;
         }
     }
+
+    private void preloadPhotoData() {
+        downloadJsonInBackground(
+                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/photo_data.json",
+                "photo_data.json",
+                false
+        );
+    }
+
+    private void handlePhotoNavigation() {
+        File cacheFile = new File(getCacheDir(), "photo_data.json");
+        if (cacheFile.exists()) {
+            Intent intent = new Intent(HomeActivity.this, PhotoCategoryActivity.class);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath());
+            startActivity(intent);
+        } else {
+            if (isPhotoDownloadComplete) {
+                Toast.makeText(this, "No photo data available.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Loading photo data... Please wait.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+
 }

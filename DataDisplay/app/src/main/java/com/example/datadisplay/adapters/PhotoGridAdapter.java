@@ -9,8 +9,9 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.datadisplay.R;
-import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
@@ -42,14 +43,21 @@ public class PhotoGridAdapter extends RecyclerView.Adapter<PhotoGridAdapter.Phot
     public void onBindViewHolder(@NonNull PhotoViewHolder holder, int position) {
         String imageUrl = imageUrls.get(position);
 
-        // Load thumbnail with Picasso (handles caching automatically)
-        Picasso.get()
+        // Load thumbnail quickly, then swap in full image
+        Glide.with(context)
                 .load(imageUrl)
-                .placeholder(R.drawable.outline_error_24) // optional placeholder
-                .error(R.drawable.outline_error_24)             // optional error image
-                .fit()
+                .thumbnail(0.25f) // load a 25% size first for instant feel
+                .placeholder(R.drawable.outline_error_24)
+                .error(R.drawable.outline_error_24)
                 .centerCrop()
+                .diskCacheStrategy(DiskCacheStrategy.ALL) // cache both original & resized
                 .into(holder.imageView);
+
+        // Preload the image into cache for smoother full-screen viewing
+        Glide.with(context)
+                .load(imageUrl)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .preload();
 
         // Handle click
         holder.itemView.setOnClickListener(v -> {

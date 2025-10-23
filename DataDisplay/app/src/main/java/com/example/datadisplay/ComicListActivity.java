@@ -9,23 +9,16 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.datadisplay.adapters.ComicGridAdapter;
-import com.example.datadisplay.models.PhotoCategory;
-import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ComicListActivity extends AppCompatActivity implements ComicGridAdapter.OnItemClickListener {
 
     private List<String> imageUrls;
-    private String categoryName;
-    private String folderName;
-    private String jsonPath;
+    private PhotoFolder currentFolder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,33 +28,13 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
         RecyclerView recyclerView = findViewById(R.id.photoRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
 
-        categoryName = getIntent().getStringExtra("category");
-        folderName = getIntent().getStringExtra("folder");
-        jsonPath = getIntent().getStringExtra("json_path");
+        // ✅ Get folder JSON directly
+        String folderJson = getIntent().getStringExtra("folder_json");
+        currentFolder = new Gson().fromJson(folderJson, PhotoFolder.class);
 
         imageUrls = new ArrayList<>();
-
-        if (jsonPath != null && categoryName != null && folderName != null) {
-            try {
-                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
-                PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
-
-                if (comicData != null && comicData.categories != null) {
-                    for (PhotoCategory category : comicData.categories) {
-                        if (category.name.equals(categoryName)) {
-                            for (PhotoFolder folder : category.folders) {
-                                if (folder.name.equals(folderName)) {
-                                    imageUrls.addAll(folder.images);
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (currentFolder != null && currentFolder.images != null) {
+            imageUrls.addAll(currentFolder.images);
         }
 
         Log.d("ComicListActivity", "Total images: " + imageUrls.size());
@@ -71,7 +44,8 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
     }
 
     @Override
-    public void onItemClick(int position) {
+    public void onItemClick(String imageUrl, int position) {
+        // ✅ We already have the clicked image URL
         Intent intent = new Intent(this, PhotoActivity.class);
         intent.putStringArrayListExtra("images", new ArrayList<>(imageUrls));
         intent.putExtra("position", position);
