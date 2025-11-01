@@ -46,6 +46,8 @@ public class BookActivity extends AppCompatActivity {
 
     Set<String> selectedTags = new HashSet<>();
 
+    ArrayList<JSONObject> displayedBooks = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,7 +89,7 @@ public class BookActivity extends AppCompatActivity {
         listView.setOnItemClickListener((parent, view, position, id) -> {
             if (booksArray != null) {
                 try {
-                    JSONObject clickedObj = booksArray.getJSONObject(position);
+                    JSONObject clickedObj = displayedBooks.get(position);
 
                     String name = clickedObj.optString("name");
                     String author = clickedObj.optString("author");
@@ -147,8 +149,8 @@ public class BookActivity extends AppCompatActivity {
             return true;
         });
     }
-    
-    // New parseJson that streams from file
+
+    // Parse JSON directly from file and populate both userList and displayedBooks
     private void parseJson(File jsonFile) {
         try (FileInputStream fis = new FileInputStream(jsonFile);
              InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
@@ -156,6 +158,7 @@ public class BookActivity extends AppCompatActivity {
 
             booksArray = new JSONArray();
             userList.clear();
+            displayedBooks.clear();
             Set<String> uniqueTags = new HashSet<>();
 
             reader.beginArray();
@@ -180,7 +183,7 @@ public class BookActivity extends AppCompatActivity {
                             content = reader.nextString();
                             break;
                         case "tag":
-                            if (reader.peek() == JsonToken.BEGIN_ARRAY) {  // ✅ correct token
+                            if (reader.peek() == JsonToken.BEGIN_ARRAY) {
                                 reader.beginArray();
                                 while (reader.hasNext()) {
                                     String t = reader.nextString();
@@ -204,9 +207,10 @@ public class BookActivity extends AppCompatActivity {
                 obj.put("author", author);
                 obj.put("content", content);
                 if (!tags.isEmpty()) obj.put("tag", new JSONArray(tags));
-                booksArray.put(obj);
 
+                booksArray.put(obj);
                 userList.add(limitWords(name, 10));
+                displayedBooks.add(obj);
 
                 reader.endObject();
             }
@@ -284,25 +288,27 @@ public class BookActivity extends AppCompatActivity {
 
     private void filterBooksByTags() {
         userList.clear();
+        displayedBooks.clear();
 
         for (int i = 0; i < booksArray.length(); i++) {
             JSONObject obj = booksArray.optJSONObject(i);
             if (obj != null) {
                 try {
                     Set<String> bookTags = new HashSet<>();
-                    Object tagObj = obj.get("tag");
+                    Object tagObj = obj.opt("tag");
 
                     if (tagObj instanceof JSONArray) {
                         JSONArray tagArray = (JSONArray) tagObj;
                         for (int j = 0; j < tagArray.length(); j++) {
                             bookTags.add(tagArray.optString(j));
                         }
-                    } else {
+                    } else if (tagObj != null) {
                         bookTags.add(obj.optString("tag"));
                     }
 
                     if (selectedTags.isEmpty() || bookTags.containsAll(selectedTags)) {
                         userList.add(obj.optString("name") + " - Author: " + obj.optString("author"));
+                        displayedBooks.add(obj);
                     }
 
                 } catch (Exception e) {
@@ -316,10 +322,13 @@ public class BookActivity extends AppCompatActivity {
 
     private void showAllBooks() {
         userList.clear();
+        displayedBooks.clear();
+
         for (int i = 0; i < booksArray.length(); i++) {
             JSONObject obj = booksArray.optJSONObject(i);
             if (obj != null) {
                 userList.add(obj.optString("name"));
+                displayedBooks.add(obj);
             }
         }
         adapter.notifyDataSetChanged();

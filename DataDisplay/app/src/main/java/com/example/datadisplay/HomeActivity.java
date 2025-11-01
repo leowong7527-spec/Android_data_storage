@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -47,6 +48,11 @@ public class HomeActivity extends AppCompatActivity {
     private boolean isComicDownloadComplete = false;
     private boolean isPhotoDownloadComplete = false;
 
+    private long dataJsonDownloadId;
+    private long mp3JsonDownloadId;
+    private long comicJsonDownloadId;
+    private long photoJsonDownloadId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,36 +76,52 @@ public class HomeActivity extends AppCompatActivity {
         cachedMp3JsonString = loadJsonFromCache("mp3_data.json");
         cachedBookJsonString = loadJsonFromCache("data.json");
         cachedComicJsonString = loadJsonFromCache("comic_data.json");
+        cachedPhotoJsonString = loadJsonFromCache("photo_data.json");
 
         // Download in background
-        downloadJsonInBackground(
-                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_data.json",
-                "mp3_data.json",
-                true
-        );
+// MP3 JSON
+        File mp3File = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "mp3_data.json");
+        if (!mp3File.exists()) {
+            mp3JsonDownloadId = downloadWithDownloadManager(
+                    "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/mp3_data.json",
+                    "mp3_data.json"
+            );
+        } else {
+            isMp3DownloadComplete = true;
+        }
 
-        // Book JSON from GitHub Release asset
+// Book JSON
         File bookFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "data.json");
         if (!bookFile.exists()) {
-            downloadWithDownloadManager(
-                    "https://github.com/leowong7527-spec/Android_data_storage/releases/download/v1.0.0/data.json",
+            dataJsonDownloadId = downloadWithDownloadManager(
+                    "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/data.json",
                     "data.json"
             );
         } else {
-            Log.d(TAG, "data.json already exists, skipping download");
             isBookDownloadComplete = true;
         }
 
+// Comic JSON
+        File comicFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "comic_data.json");
+        if (!comicFile.exists()) {
+            comicJsonDownloadId = downloadWithDownloadManager(
+                    "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json",
+                    "comic_data.json"
+            );
+        } else {
+            isComicDownloadComplete = true;
+        }
 
-
-        downloadJsonInBackground(
-                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json",
-                "comic_data.json",
-                false
-        );
-
-        // Preload photos
-        preloadPhotoData();
+// Photo JSON
+        File photoFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "photo_data.json");
+        if (!photoFile.exists()) {
+            photoJsonDownloadId = downloadWithDownloadManager(
+                    "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/photo_data.json",
+                    "photo_data.json"
+            );
+        } else {
+            isPhotoDownloadComplete = true;
+        }
 
         // Navigation drawer clicks
         navigationView.setNavigationItemSelectedListener(item -> {
@@ -121,130 +143,9 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    // Helper: follow redirects until HTTP 200 OK
-    private HttpURLConnection openConnectionFollowRedirects(String urlString) throws Exception {
-        URL url = new URL(urlString);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setInstanceFollowRedirects(false);
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(15000);
+    private long downloadWithDownloadManager(String url, String filename) {
+        Log.d(TAG, "Starting download: " + filename + " from " + url);
 
-        int status = conn.getResponseCode();
-        int redirectCount = 0;
-
-        while (status == HttpURLConnection.HTTP_MOVED_TEMP ||
-                status == HttpURLConnection.HTTP_MOVED_PERM ||
-                status == HttpURLConnection.HTTP_SEE_OTHER) {
-
-            if (redirectCount++ > 5) {
-                throw new Exception("Too many redirects");
-            }
-            String newUrl = conn.getHeaderField("Location");
-            Log.d(TAG, "Redirecting to: " + newUrl);
-            url = new URL(newUrl);
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setInstanceFollowRedirects(false);
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(15000);
-            status = conn.getResponseCode();
-        }
-
-        if (status != HttpURLConnection.HTTP_OK) {
-            throw new Exception("Failed to fetch, status=" + status);
-        }
-
-        return conn;
-    }
-
-
-
-    private void downloadJsonInBackground(String urlString, String filename, boolean isMp3) {
-        new Thread(() -> {
-            try {
-                HttpURLConnection conn = openConnectionFollowRedirects(urlString);
-
-                if ("data.json".equals(filename)) {
-                    // Stream large file directly to disk
-                    InputStream in = conn.getInputStream();
-                    File outFile = new File(getCacheDir(), filename);
-                    FileOutputStream out = new FileOutputStream(outFile);
-
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
-                    long total = 0;
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, bytesRead);
-                        total += bytesRead;
-                        if (total % (5 * 1024 * 1024) < 8192) {
-                            Log.d(TAG, filename + " downloaded " + (total / (1024 * 1024)) + " MB...");
-                        }
-                    }
-                    out.close();
-                    in.close();
-
-                    Log.d(TAG, filename + " saved directly to " + outFile.getAbsolutePath());
-                    isBookDownloadComplete = true;
-
-                } else {
-                    // For smaller JSONs, read into memory
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    StringBuilder builder = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        builder.append(line);
-                    }
-                    reader.close();
-
-                    String jsonString = builder.toString();
-
-                    // Debug log: preview first 200 characters
-                    Log.d(TAG, "Preview of " + filename + " response: " +
-                            jsonString.substring(0, Math.min(200, jsonString.length())));
-
-                    // Safety check: avoid saving HTML error pages
-                    if (jsonString.startsWith("<!DOCTYPE") || jsonString.startsWith("<html")) {
-                        throw new Exception("Received HTML instead of JSON for " + filename);
-                    }
-
-                    saveJsonToCache(filename, jsonString);
-
-                    if ("mp3_data.json".equals(filename)) {
-                        cachedMp3JsonString = jsonString;
-                        isMp3DownloadComplete = true;
-                    } else if ("comic_data.json".equals(filename)) {
-                        cachedComicJsonString = jsonString;
-                        isComicDownloadComplete = true;
-                    } else if ("photo_data.json".equals(filename)) {
-                        cachedPhotoJsonString = jsonString;
-                        isPhotoDownloadComplete = true;
-                    }
-                }
-
-                Log.d(TAG, filename + " download complete and cached.");
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error downloading " + filename, e);
-
-                if ("mp3_data.json".equals(filename)) {
-                    isMp3DownloadComplete = true;
-                } else if ("data.json".equals(filename)) {
-                    isBookDownloadComplete = true;
-                } else if ("comic_data.json".equals(filename)) {
-                    isComicDownloadComplete = true;
-                } else if ("photo_data.json".equals(filename)) {
-                    isPhotoDownloadComplete = true;
-                }
-
-                runOnUiThread(() ->
-                        Toast.makeText(HomeActivity.this, "Error downloading " + filename, Toast.LENGTH_SHORT).show());
-            }
-        }).start();
-    }
-
-
-    private long dataJsonDownloadId;
-
-    private void downloadWithDownloadManager(String url, String filename) {
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setTitle("Downloading " + filename);
         request.setDescription("Please wait...");
@@ -252,8 +153,12 @@ public class HomeActivity extends AppCompatActivity {
         request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, filename);
 
         DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-        dataJsonDownloadId = manager.enqueue(request);
+        long id = manager.enqueue(request);
+
+        Log.d(TAG, "Enqueued download for " + filename + " with ID=" + id);
+        return id;
     }
+
 
     @Override
     protected void onResume() {
@@ -275,29 +180,76 @@ public class HomeActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            Log.d(TAG, "Download complete broadcast received for ID=" + id);
+
+            DownloadManager.Query query = new DownloadManager.Query();
+            query.setFilterById(id);
+            DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            Cursor cursor = manager.query(query);
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                int reasonIndex = cursor.getColumnIndex(DownloadManager.COLUMN_REASON);
+
+                if (statusIndex != -1 && reasonIndex != -1) {
+                    int status = cursor.getInt(statusIndex);
+                    int reason = cursor.getInt(reasonIndex);
+                    Log.d(TAG, "Download ID=" + id
+                            + " status=" + getStatusMessage(status) + "(" + status + ")"
+                            + " reason=" + getReasonMessage(reason) + "(" + reason + ")");
+                }
+                cursor.close();
+            }
+
             if (id == dataJsonDownloadId) {
                 isBookDownloadComplete = true;
+                Log.d(TAG, "data.json download finished successfully");
                 Toast.makeText(context, "data.json download finished", Toast.LENGTH_SHORT).show();
+            } else if (id == mp3JsonDownloadId) {
+                isMp3DownloadComplete = true;
+                Log.d(TAG, "mp3_data.json download finished successfully");
+                Toast.makeText(context, "mp3_data.json download finished", Toast.LENGTH_SHORT).show();
+            } else if (id == comicJsonDownloadId) {
+                isComicDownloadComplete = true;
+                Log.d(TAG, "comic_data.json download finished successfully");
+                Toast.makeText(context, "comic_data.json download finished", Toast.LENGTH_SHORT).show();
+            } else if (id == photoJsonDownloadId) {
+                isPhotoDownloadComplete = true;
+                Log.d(TAG, "photo_data.json download finished successfully");
+                Toast.makeText(context, "photo_data.json download finished", Toast.LENGTH_SHORT).show();
+            } else {
+                Log.w(TAG, "Unknown download ID=" + id);
             }
         }
     };
 
 
-    private void handleMp3Navigation() {
-        File cacheFile = new File(getCacheDir(), "mp3_data.json");
-        if (cacheFile.exists()) {
-            Intent intent = new Intent(HomeActivity.this, RadioCategoryActivity.class);
-            intent.putExtra("json_path", cacheFile.getAbsolutePath());
-            startActivity(intent);
-        } else {
-            if (isMp3DownloadComplete) {
-                Toast.makeText(this, "No MP3 data available.", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Loading MP3 data... Please wait.", Toast.LENGTH_LONG).show();
-            }
+
+    private String getStatusMessage(int status) {
+        switch (status) {
+            case DownloadManager.STATUS_PENDING: return "PENDING";
+            case DownloadManager.STATUS_RUNNING: return "RUNNING";
+            case DownloadManager.STATUS_PAUSED:  return "PAUSED";
+            case DownloadManager.STATUS_SUCCESSFUL: return "SUCCESSFUL";
+            case DownloadManager.STATUS_FAILED:  return "FAILED";
+            default: return "UNKNOWN";
         }
     }
 
+    private String getReasonMessage(int reason) {
+        switch (reason) {
+            case DownloadManager.ERROR_CANNOT_RESUME: return "ERROR_CANNOT_RESUME";
+            case DownloadManager.ERROR_DEVICE_NOT_FOUND: return "ERROR_DEVICE_NOT_FOUND";
+            case DownloadManager.ERROR_FILE_ALREADY_EXISTS: return "ERROR_FILE_ALREADY_EXISTS";
+            case DownloadManager.ERROR_FILE_ERROR: return "ERROR_FILE_ERROR";
+            case DownloadManager.ERROR_HTTP_DATA_ERROR: return "ERROR_HTTP_DATA_ERROR";
+            case DownloadManager.ERROR_INSUFFICIENT_SPACE: return "ERROR_INSUFFICIENT_SPACE";
+            case DownloadManager.ERROR_TOO_MANY_REDIRECTS: return "ERROR_TOO_MANY_REDIRECTS";
+            case DownloadManager.ERROR_UNHANDLED_HTTP_CODE: return "ERROR_UNHANDLED_HTTP_CODE";
+            case DownloadManager.ERROR_UNKNOWN: return "ERROR_UNKNOWN";
+            default: return "REASON_OTHER(" + reason + ")";
+        }
+    }
     private void handleBookNavigation() {
         // Since data.json is downloaded with DownloadManager, it’s saved in external files dir
         File cacheFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "data.json");
@@ -311,35 +263,6 @@ public class HomeActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "Loading book data... Please wait.", Toast.LENGTH_LONG).show();
             }
-        }
-    }
-
-
-
-    private void handleComicNavigation() {
-        File cacheFile = new File(getCacheDir(), "comic_data.json");
-        if (cacheFile.exists()) {
-            Intent intent = new Intent(HomeActivity.this, ComicCategoryActivity.class);
-            intent.putExtra("json_path", cacheFile.getAbsolutePath());
-            startActivity(intent);
-        } else {
-            if (isComicDownloadComplete) {
-                Toast.makeText(this, "No comic data available.", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Loading comic data... Please wait.", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    private void saveJsonToCache(String filename, String json) {
-        try {
-            File jsonFile = new File(getCacheDir(), filename);
-            FileOutputStream fos = new FileOutputStream(jsonFile);
-            fos.write(json.getBytes());
-            fos.close();
-            Log.d(TAG, "JSON cached locally to " + jsonFile.getAbsolutePath());
-        } catch (Exception e) {
-            Log.e(TAG, "Error saving JSON to cache", e);
         }
     }
 
@@ -367,15 +290,50 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void preloadPhotoData() {
-        downloadJsonInBackground(
-                "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/photo_data.json",
-                "photo_data.json",
-                false
-        );
+        File photoFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "photo_data.json");
+        if (!photoFile.exists()) {
+            photoJsonDownloadId = downloadWithDownloadManager(
+                    "https://github.com/leowong7527-spec/Android_data_storage/releases/download/v1.0.1/photo_data.json",
+                    "photo_data.json"
+            );
+        } else {
+            isPhotoDownloadComplete = true;
+        }
+    }
+
+
+    private void handleMp3Navigation() {
+        File cacheFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "mp3_data.json");
+        if (cacheFile.exists()) {
+            Intent intent = new Intent(HomeActivity.this, RadioCategoryActivity.class);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath());
+            startActivity(intent);
+        } else {
+            if (isMp3DownloadComplete) {
+                Toast.makeText(this, "No MP3 data available.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Loading MP3 data... Please wait.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void handleComicNavigation() {
+        File cacheFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "comic_data.json");
+        if (cacheFile.exists()) {
+            Intent intent = new Intent(HomeActivity.this, ComicCategoryActivity.class);
+            intent.putExtra("json_path", cacheFile.getAbsolutePath());
+            startActivity(intent);
+        } else {
+            if (isComicDownloadComplete) {
+                Toast.makeText(this, "No comic data available.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Loading comic data... Please wait.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void handlePhotoNavigation() {
-        File cacheFile = new File(getCacheDir(), "photo_data.json");
+        File cacheFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "photo_data.json");
         if (cacheFile.exists()) {
             Intent intent = new Intent(HomeActivity.this, PhotoCategoryActivity.class);
             intent.putExtra("json_path", cacheFile.getAbsolutePath());
