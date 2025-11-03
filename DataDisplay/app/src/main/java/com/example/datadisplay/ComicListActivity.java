@@ -8,23 +8,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.datadisplay.adapters.ComicGridAdapter;
 import com.example.datadisplay.models.PhotoCategory;
 import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class ComicListActivity extends AppCompatActivity implements ComicGridAdapter.OnItemClickListener {
 
     private static final String TAG = "ComicListActivity";
 
-    private List<String> imageUrls;
+    private final List<String> imageUrls = new ArrayList<>();
+    private ComicGridAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,40 +37,48 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
 
         RecyclerView recyclerView = findViewById(R.id.photoRecyclerView);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
+        recyclerView.setHasFixedSize(true);
+
+        adapter = new ComicGridAdapter(this, imageUrls, this);
+        recyclerView.setAdapter(adapter);
 
         String folderName = getIntent().getStringExtra("folder_name");
         String jsonPath   = getIntent().getStringExtra("json_path");
 
         Log.d(TAG, "onCreate: folderName=" + folderName + ", jsonPath=" + jsonPath);
 
-        imageUrls = new ArrayList<>();
+        // Load JSON + prefetch in background
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                if (jsonPath != null && folderName != null) {
+                    PhotoData comicData = loadComicData(jsonPath);
 
-        try {
-            if (jsonPath != null && folderName != null) {
-                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
-                PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
-
-                if (comicData != null && comicData.categories != null) {
-                    for (PhotoCategory category : comicData.categories) {
-                        PhotoFolder folder = findFolderByName(category.folders, folderName);
-                        if (folder != null) {
-                            if (folder.images != null) {
-                                imageUrls.addAll(folder.images);
+                    if (comicData != null && comicData.categories != null) {
+                        for (PhotoCategory category : comicData.categories) {
+                            PhotoFolder folder = findFolderByName(category.folders, folderName);
+                            if (folder != null && folder.images != null) {
+                                synchronized (imageUrls) {
+                                    imageUrls.clear();
+                                    imageUrls.addAll(folder.images);
+                                }
                                 Log.d(TAG, "Loaded folder: " + folder.name + " with " + folder.images.size() + " images");
+
+                                // 🔥 Prefetch all images into Glide cache
+                                prefetchImages(folder.images);
+                                break;
                             }
-                            break;
                         }
                     }
                 }
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading images from JSON", e);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading images from JSON", e);
-        }
 
-        Log.d(TAG, "Total images: " + imageUrls.size());
-
-        ComicGridAdapter adapter = new ComicGridAdapter(this, imageUrls, this);
-        recyclerView.setAdapter(adapter);
+            runOnUiThread(() -> {
+                Log.d(TAG, "Total images: " + imageUrls.size());
+                adapter.notifyDataSetChanged();
+            });
+        });
     }
 
     @Override
@@ -86,5 +98,31 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
             if (found != null) return found;
         }
         return null;
+    }
+
+    // ✅ Prefetch images into Glide disk cache
+    private void prefetchImages(List<String> urls) {
+        for (String url : urls) {
+            Glide.with(this)
+                    .downloadOnly()
+                    .load(url)
+                    .preload();  // enqueue into Glide’s cache
+        }
+    }
+
+    // ✅ Utility: safely load JSON into PhotoData
+    private PhotoData loadComicData(String path) {
+        File file = new File(path);
+        if (!file.exists()) {
+            Log.w(TAG, "JSON file not found: " + path);
+            return null;
+        }
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
+            return new Gson().fromJson(reader, PhotoData.class);
+        } catch (Exception e) {
+            Log.e(TAG, "Error reading JSON file: " + path, e);
+            return null;
+        }
     }
 }

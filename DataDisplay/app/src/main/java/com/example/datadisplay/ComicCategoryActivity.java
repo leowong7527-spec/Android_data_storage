@@ -14,38 +14,44 @@ import com.example.datadisplay.models.PhotoData;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.*;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class ComicCategoryActivity extends AppCompatActivity {
 
     private static final String TAG = "ComicCategoryActivity";
 
     private RecyclerView recyclerView;
-    private final String jsonUrl = "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json";
+    private final String jsonUrl =
+            "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json";
     private File cacheFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_photo_category);
+        setContentView(R.layout.activity_photo_category); // consider renaming layout
 
         recyclerView = findViewById(R.id.categoryRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        cacheFile = new File(getCacheDir(), "comic_data.json");
+        // Use external files dir for consistency with HomeActivity
+        cacheFile = new File(getExternalFilesDir(null), "comic_data.json");
 
         // ✅ 1. Load from cache immediately if available
         if (cacheFile.exists()) {
             try {
-                String cachedJson = new String(Files.readAllBytes(cacheFile.toPath()), StandardCharsets.UTF_8);
+                String cachedJson = readFileAsString(cacheFile);
                 setupRecyclerWithJson(cachedJson);
                 Log.d(TAG, "Loaded categories from cache");
             } catch (Exception e) {
@@ -63,16 +69,17 @@ public class ComicCategoryActivity extends AppCompatActivity {
 
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(Call call, java.io.IOException e) {
                 Log.e(TAG, "Network fetch failed", e);
-                runOnUiThread(() -> Snackbar.make(recyclerView,
+                runOnUiThread(() -> Snackbar.make(
+                        recyclerView,
                         "Failed to refresh comic categories",
                         Snackbar.LENGTH_LONG).show());
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
+            public void onResponse(Call call, Response response) throws java.io.IOException {
+                if (response.isSuccessful() && response.body() != null) {
                     String json = response.body().string();
                     Log.d(TAG, "Fetched fresh JSON, length=" + json.length());
 
@@ -92,22 +99,39 @@ public class ComicCategoryActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerWithJson(String json) {
-        Gson gson = new Gson();
-        PhotoData comicData = gson.fromJson(json, PhotoData.class);
+        try {
+            Gson gson = new Gson();
+            PhotoData comicData = gson.fromJson(json, PhotoData.class);
 
-        List<PhotoCategory> categories = new ArrayList<>();
-        if (comicData != null && comicData.categories != null) {
-            categories.addAll(comicData.categories);
+            List<PhotoCategory> categories = new ArrayList<>();
+            if (comicData != null && comicData.categories != null) {
+                categories.addAll(comicData.categories);
+            }
+
+            PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categories, category -> {
+                Log.d(TAG, "Category clicked: " + category.name);
+                Intent intent = new Intent(ComicCategoryActivity.this, ComicFolderActivity.class);
+                intent.putExtra("category_name", category.name);
+                intent.putExtra("json_path", cacheFile.getAbsolutePath());
+                startActivity(intent);
+            });
+
+            recyclerView.setAdapter(adapter);
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing JSON", e);
         }
+    }
 
-        PhotoCategoryAdapter adapter = new PhotoCategoryAdapter(categories, category -> {
-            Log.d(TAG, "Category clicked: " + category.name);
-            Intent intent = new Intent(ComicCategoryActivity.this, ComicFolderActivity.class);
-            intent.putExtra("category_name", category.name);   // ✅ only pass name
-            intent.putExtra("json_path", cacheFile.getAbsolutePath());
-            startActivity(intent);
-        });
-
-        recyclerView.setAdapter(adapter);
+    // ✅ Utility: stream file safely
+    private String readFileAsString(File file) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+        return sb.toString();
     }
 }

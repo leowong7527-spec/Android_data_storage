@@ -14,9 +14,10 @@ import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,35 +47,27 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
 
         folderList = new ArrayList<>();
 
-        try {
-            if (jsonPath != null) {
-                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
-                PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
-
-                if (comicData != null && comicData.categories != null) {
-                    for (PhotoCategory category : comicData.categories) {
-                        if (category.name.equals(categoryName) && category.folders != null) {
-                            if (folderName == null) {
-                                // First entry point → load top-level folders
-                                folderList = category.folders;
-                                Log.d(TAG, "Loaded top-level category: " + category.name + " with " + folderList.size() + " folders");
-                            } else {
-                                // Find the matching subfolder
-                                for (PhotoFolder folder : category.folders) {
-                                    if (folder.name.equals(folderName)) {
-                                        folderList = folder.folders != null ? folder.folders : new ArrayList<>();
-                                        Log.d(TAG, "Loaded subfolder: " + folder.name + " with " + folderList.size() + " children");
-                                        break;
-                                    }
-                                }
+        PhotoData comicData = loadComicData(jsonPath);
+        if (comicData != null && comicData.categories != null) {
+            for (PhotoCategory category : comicData.categories) {
+                if (category.name.equals(categoryName) && category.folders != null) {
+                    if (folderName == null) {
+                        // First entry point → load top-level folders
+                        folderList = category.folders;
+                        Log.d(TAG, "Loaded top-level category: " + category.name + " with " + folderList.size() + " folders");
+                    } else {
+                        // Find the matching subfolder
+                        for (PhotoFolder folder : category.folders) {
+                            if (folder.name.equals(folderName)) {
+                                folderList = folder.folders != null ? folder.folders : new ArrayList<>();
+                                Log.d(TAG, "Loaded subfolder: " + folder.name + " with " + folderList.size() + " children");
+                                break;
                             }
-                            break;
                         }
                     }
+                    break;
                 }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading folders from JSON", e);
         }
 
         PhotoFolderAdapter adapter = new PhotoFolderAdapter(folderList, this);
@@ -85,40 +78,49 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
     public void onFolderClick(String folderName) {
         Log.d(TAG, "Clicked folder: " + folderName);
 
-        try {
-            if (jsonPath != null) {
-                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
-                PhotoData comicData = new Gson().fromJson(json, PhotoData.class);
-
-                if (comicData != null && comicData.categories != null) {
-                    for (PhotoCategory category : comicData.categories) {
-                        if (category.name.equals(categoryName) && category.folders != null) {
-                            for (PhotoFolder folder : category.folders) {
-                                if (folder.name.equals(folderName)) {
-                                    if (folder.folders != null && !folder.folders.isEmpty()) {
-                                        // ✅ Has subfolders → open ComicFolderActivity again
-                                        Intent intent = new Intent(this, ComicFolderActivity.class);
-                                        intent.putExtra("category_name", categoryName);
-                                        intent.putExtra("folder_name", folder.name);
-                                        intent.putExtra("json_path", jsonPath);
-                                        startActivity(intent);
-                                    } else {
-                                        // ✅ No subfolders → open ComicListActivity
-                                        Intent intent = new Intent(this, ComicListActivity.class);
-                                        intent.putExtra("category_name", categoryName);
-                                        intent.putExtra("folder_name", folder.name);
-                                        intent.putExtra("json_path", jsonPath);
-                                        startActivity(intent);
-                                    }
-                                    return;
-                                }
+        PhotoData comicData = loadComicData(jsonPath);
+        if (comicData != null && comicData.categories != null) {
+            for (PhotoCategory category : comicData.categories) {
+                if (category.name.equals(categoryName) && category.folders != null) {
+                    for (PhotoFolder folder : category.folders) {
+                        if (folder.name.equals(folderName)) {
+                            if (folder.folders != null && !folder.folders.isEmpty()) {
+                                // ✅ Has subfolders → open ComicFolderActivity again
+                                Intent intent = new Intent(this, ComicFolderActivity.class);
+                                intent.putExtra("category_name", categoryName);
+                                intent.putExtra("folder_name", folder.name);
+                                intent.putExtra("json_path", jsonPath);
+                                startActivity(intent);
+                            } else {
+                                // ✅ No subfolders → open ComicListActivity
+                                Intent intent = new Intent(this, ComicListActivity.class);
+                                intent.putExtra("category_name", categoryName);
+                                intent.putExtra("folder_name", folder.name);
+                                intent.putExtra("json_path", jsonPath);
+                                startActivity(intent);
                             }
+                            return;
                         }
                     }
                 }
             }
+        }
+    }
+
+    // ✅ Utility: safely load JSON into PhotoData
+    private PhotoData loadComicData(String path) {
+        if (path == null) return null;
+        File file = new File(path);
+        if (!file.exists()) {
+            Log.w(TAG, "JSON file not found: " + path);
+            return null;
+        }
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
+            return new Gson().fromJson(reader, PhotoData.class);
         } catch (Exception e) {
-            Log.e(TAG, "Error handling folder click", e);
+            Log.e(TAG, "Error reading JSON file: " + path, e);
+            return null;
         }
     }
 }

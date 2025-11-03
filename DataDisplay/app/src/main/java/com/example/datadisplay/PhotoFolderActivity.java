@@ -15,62 +15,81 @@ import com.example.datadisplay.models.PhotoFolder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolderAdapter.OnFolderClickListener {
 
     private static final String TAG = "PhotoFolderActivity";
 
-    private List<PhotoFolder> folderList;
+    private List<PhotoFolder> folderList = new ArrayList<>();
     private String categoryName;
     private String jsonPath;
+    private RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_folder);
 
-        RecyclerView recyclerView = findViewById(R.id.folderRecyclerView);
+        recyclerView = findViewById(R.id.folderRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // ✅ Use category_name consistently
         categoryName = getIntent().getStringExtra("category_name");
         jsonPath = getIntent().getStringExtra("json_path");
         String folderName = getIntent().getStringExtra("folder_name");
 
-        folderList = new ArrayList<>();
+        loadFolders(jsonPath, categoryName, folderName);
+    }
 
-        try {
-            if (jsonPath != null) {
-                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
-                PhotoData photoData = new Gson().fromJson(json, PhotoData.class);
+    private void loadFolders(String jsonPath, String categoryName, String folderName) {
+        PhotoData cached = PhotoDataCache.getInstance().getData();
+        if (cached != null) {
+            setupRecycler(cached, categoryName, folderName);
+            return;
+        }
 
-                if (photoData != null && photoData.categories != null) {
-                    for (PhotoCategory category : photoData.categories) {
-                        if (category.name.equals(categoryName) && category.folders != null) {
-                            if (folderName == null) {
-                                // First entry point → load top-level folders
-                                folderList = category.folders != null ? category.folders : new ArrayList<>();
-                            } else {
-                                // Use recursive search for nested folders
-                                PhotoFolder current = findFolderByName(category.folders, folderName);
-                                folderList = (current != null && current.folders != null) ? current.folders : new ArrayList<>();
-                                if (current != null) {
-                                    Log.d(TAG, "Loaded subfolder: " + current.name + " with " + folderList.size() + " children");
-                                }
-                            }
-                            break;
+        Executors.newSingleThreadExecutor().execute(() -> {
+            PhotoData photoData = null;
+            try (FileInputStream fis = new FileInputStream(new File(jsonPath));
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
+                photoData = new Gson().fromJson(reader, PhotoData.class);
+                PhotoDataCache.getInstance().setData(photoData);
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading folders", e);
+                runOnUiThread(() ->
+                        Snackbar.make(recyclerView, "Failed to load folders", Snackbar.LENGTH_LONG).show());
+            }
+
+            PhotoData finalData = photoData;
+            runOnUiThread(() -> setupRecycler(finalData, categoryName, folderName));
+        });
+    }
+
+    private void setupRecycler(PhotoData photoData, String categoryName, String folderName) {
+        folderList.clear();
+        if (photoData != null && photoData.categories != null) {
+            for (PhotoCategory category : photoData.categories) {
+                if (category.name.equals(categoryName)) {
+                    if (folderName == null) {
+                        folderList.addAll(category.folders != null ? category.folders : new ArrayList<>());
+                    } else {
+                        PhotoFolder current = findFolderByName(category.folders, folderName);
+                        if (current != null && current.folders != null) {
+                            folderList.addAll(current.folders);
+                            Log.d(TAG, "Loaded subfolder: " + current.name + " with " + folderList.size() + " children");
+                        } else {
+                            Snackbar.make(recyclerView, "Folder not found: " + folderName, Snackbar.LENGTH_LONG).show();
                         }
                     }
+                    break;
                 }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading folders", e);
-            Snackbar.make(recyclerView, "Failed to load folders", Snackbar.LENGTH_LONG).show();
         }
 
         PhotoFolderAdapter adapter = new PhotoFolderAdapter(folderList, this);
@@ -79,51 +98,39 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
 
     @Override
     public void onFolderClick(String folderName) {
-        Log.d(TAG, "Clicked folder: " + folderName);
+        PhotoData photoData = PhotoDataCache.getInstance().getData();
+        if (photoData == null) {
+            Snackbar.make(recyclerView, "Data not loaded", Snackbar.LENGTH_LONG).show();
+            return;
+        }
 
-        try {
-            if (jsonPath != null) {
-                String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
-                PhotoData photoData = new Gson().fromJson(json, PhotoData.class);
-
-                if (photoData != null && photoData.categories != null) {
-                    for (PhotoCategory category : photoData.categories) {
-                        if (categoryName.equals(category.name)) {
-                            PhotoFolder clicked = findFolderByName(category.folders, folderName);
-                            if (clicked == null) {
-                                Log.w(TAG, "Folder not found in JSON: " + folderName);
-                                Snackbar.make(findViewById(R.id.folderRecyclerView),
-                                        "Folder not found", Snackbar.LENGTH_LONG).show();
-                                return;
-                            }
-
-                            if (clicked.folders != null && !clicked.folders.isEmpty()) {
-                                Intent intent = new Intent(this, PhotoFolderActivity.class);
-                                intent.putExtra("category_name", categoryName);
-                                intent.putExtra("folder_name", clicked.name);
-                                intent.putExtra("json_path", jsonPath);
-                                startActivity(intent);
-                            } else if (clicked.images != null && !clicked.images.isEmpty()) {
-                                Intent intent = new Intent(this, PhotoListActivity.class);
-                                intent.putExtra("category_name", categoryName);
-                                intent.putExtra("folder_name", clicked.name);
-                                intent.putExtra("json_path", jsonPath);
-                                startActivity(intent);
-                            } else {
-                                Log.w(TAG, "Folder is empty: " + clicked.name);
-                                Snackbar.make(findViewById(R.id.folderRecyclerView),
-                                        "This folder is empty", Snackbar.LENGTH_LONG).show();
-                            }
-                            return;
-                        }
-                    }
+        for (PhotoCategory category : photoData.categories) {
+            if (categoryName.equals(category.name)) {
+                PhotoFolder clicked = findFolderByName(category.folders, folderName);
+                if (clicked == null) {
+                    Snackbar.make(recyclerView, "Folder not found: " + folderName, Snackbar.LENGTH_LONG).show();
+                    return;
                 }
+
+                if (clicked.folders != null && !clicked.folders.isEmpty()) {
+                    Intent intent = new Intent(this, PhotoFolderActivity.class);
+                    intent.putExtra("category_name", categoryName);
+                    intent.putExtra("folder_name", clicked.name);
+                    intent.putExtra("json_path", jsonPath);
+                    startActivity(intent);
+                } else if (clicked.images != null && !clicked.images.isEmpty()) {
+                    Intent intent = new Intent(this, PhotoListActivity.class);
+                    intent.putExtra("category_name", categoryName);
+                    intent.putExtra("folder_name", clicked.name);
+                    intent.putExtra("json_path", jsonPath);
+                    startActivity(intent);
+                } else {
+                    Snackbar.make(recyclerView, "This folder is empty", Snackbar.LENGTH_LONG).show();
+                }
+                return;
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error handling folder click", e);
         }
     }
-
 
     private PhotoFolder findFolderByName(List<PhotoFolder> folders, String targetName) {
         if (folders == null) return null;
