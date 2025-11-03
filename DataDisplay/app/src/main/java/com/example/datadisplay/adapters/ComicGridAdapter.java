@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -50,23 +51,12 @@ public class ComicGridAdapter extends RecyclerView.Adapter<ComicGridAdapter.Comi
     @Override
     public void onBindViewHolder(@NonNull ComicViewHolder holder, int position) {
         String imageUrl = imageUrls.get(position);
-        Log.d("ComicGridAdapter", "Loading image: " + imageUrl);
 
-        // Load image with Glide -> file -> SubsamplingScaleImageView
         Glide.with(context)
-                .downloadOnly()
                 .load(imageUrl)
-                .into(new CustomTarget<File>() {
-                    @Override
-                    public void onResourceReady(@NonNull File resource, @Nullable Transition<? super File> transition) {
-                        holder.imageView.setImage(ImageSource.uri(Uri.fromFile(resource)));
-                    }
-
-                    @Override public void onLoadCleared(@Nullable Drawable placeholder) {}
-                    @Override public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                        Log.e("ComicGridAdapter", "Failed to load image: " + imageUrl);
-                    }
-                });
+                .placeholder(R.drawable.outline_error_24) // optional
+                .error(R.drawable.outline_error_24)       // optional
+                .into(holder.imageView);
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
@@ -84,11 +74,12 @@ public class ComicGridAdapter extends RecyclerView.Adapter<ComicGridAdapter.Comi
     }
 
     static class ComicViewHolder extends RecyclerView.ViewHolder {
-        SubsamplingScaleImageView imageView;
+        ImageView imageView;
 
         ComicViewHolder(View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.comicImageView);
         }
+
     }
 }
