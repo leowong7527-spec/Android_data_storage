@@ -32,5 +32,9 @@
 
     <string name="unlock_zoom">Zoom</string>
 
+    <!-- Navigation header -->
+    <string name="nav_header_title">Data Display</string>
+    <string name="nav_header_subtitle">Content Management</string>
+    <string name="nav_header_desc">Navigation header</string>
 
 </resources>

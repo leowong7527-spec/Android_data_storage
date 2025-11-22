@@ -10,6 +10,7 @@ import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -47,7 +48,7 @@ public class RadioPlaybackService extends Service {
     public static final String ACTION_NEXT = "ACTION_NEXT";
     public static final String ACTION_PREVIOUS = "ACTION_PREVIOUS";
 
-    private final Handler progressHandler = new Handler();
+    private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable progressRunnable = new Runnable() {
         @Override
         public void run() {
@@ -185,12 +186,22 @@ public class RadioPlaybackService extends Service {
 
     private void playNextRandomTrack() {
         if (allUrls == null || allUrls.isEmpty()) return;
+        
+        // Avoid infinite loop if only 1 track
+        if (allUrls.size() == 1) {
+            playTrack(allUrls.get(0));
+            return;
+        }
+        
         int randomIndex;
         String nextUrl;
+        int attempts = 0;
+        final int MAX_ATTEMPTS = 10;
         do {
             randomIndex = new Random().nextInt(allUrls.size());
             nextUrl = allUrls.get(randomIndex);
-        } while (nextUrl.equals(currentUrl));
+            attempts++;
+        } while (nextUrl.equals(currentUrl) && attempts < MAX_ATTEMPTS);
 
         currentUrl = nextUrl;
 

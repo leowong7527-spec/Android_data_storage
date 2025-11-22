@@ -101,12 +101,16 @@ public class RadioListActivity extends AppCompatActivity {
         listView.setAdapter(adapter);
 
         listView.setOnItemClickListener((parent, view, position, id) -> {
-            Intent intent = new Intent(this, RadioDetailActivity.class);
-            intent.putExtra("title", titles.get(position));
-            intent.putExtra("url", urls.get(position));
-            intent.putStringArrayListExtra("allUrls", new ArrayList<>(urls));
-            intent.putStringArrayListExtra("allTitles", new ArrayList<>(titles)); // ✅ pass titles too
-            startActivity(intent);
+            if (position >= 0 && position < titles.size() && position < urls.size()) {
+                Intent intent = new Intent(this, RadioDetailActivity.class);
+                intent.putExtra("title", titles.get(position));
+                intent.putExtra("url", urls.get(position));
+                intent.putStringArrayListExtra("allUrls", new ArrayList<>(urls));
+                intent.putStringArrayListExtra("allTitles", new ArrayList<>(titles));
+                startActivity(intent);
+            } else {
+                Log.w(TAG, "Invalid position: " + position + ", max: " + titles.size());
+            }
         });
     }
 

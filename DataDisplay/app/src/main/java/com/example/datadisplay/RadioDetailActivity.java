@@ -83,7 +83,7 @@ public class RadioDetailActivity extends AppCompatActivity {
         currentUrl = getIntent().getStringExtra("url");
         allUrls = getIntent().getStringArrayListExtra("allUrls");
 
-        titleText.setText(title);
+        titleText.setText(title != null ? title : "Unknown Track");
 
         loopButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent));
         shuffleButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent));

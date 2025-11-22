@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -43,8 +44,13 @@ public class RadioCategoryActivity extends AppCompatActivity implements RadioCat
         String json = null;
 
         if (jsonPath != null) {
-            try {
-                json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(jsonPath), StandardCharsets.UTF_8))) {
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                json = sb.toString();
                 Log.d(TAG, "Loaded JSON from file path: " + jsonPath);
             } catch (Exception e) {
                 Log.e(TAG, "Error reading JSON file", e);
