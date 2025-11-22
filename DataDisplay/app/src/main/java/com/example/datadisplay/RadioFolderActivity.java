@@ -2,6 +2,7 @@ package com.example.datadisplay;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -45,19 +46,26 @@ public class RadioFolderActivity extends AppCompatActivity implements RadioFolde
                 JSONObject jsonData = new JSONObject(json);
                 JSONArray categories = jsonData.getJSONArray("categories");
 
+                Log.d("RadioFolderActivity", "Looking for category: " + categoryName);
+                
                 for (int i = 0; i < categories.length(); i++) {
                     JSONObject cat = categories.getJSONObject(i);
                     if (cat.getString("name").equals(categoryName)) {
                         JSONArray folders = cat.getJSONArray("folders");
+                        Log.d("RadioFolderActivity", "Found " + folders.length() + " folders in category");
+                        
                         for (int j = 0; j < folders.length(); j++) {
-                            folderNames.add(folders.getJSONObject(j).getString("name"));
+                            String folderName = folders.getJSONObject(j).getString("name");
+                            folderNames.add(folderName);
+                            Log.d("RadioFolderActivity", "Added folder: " + folderName);
                         }
                         break;
                     }
                 }
             } catch (Exception e) {
+                Log.e("RadioFolderActivity", "Error loading folders", e);
                 e.printStackTrace();
-                Toast.makeText(this, "Error loading folders", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error loading folders: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
 

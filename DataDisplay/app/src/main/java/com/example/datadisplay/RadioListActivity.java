@@ -50,15 +50,27 @@ public class RadioListActivity extends AppCompatActivity {
                 String json = new String(Files.readAllBytes(new File(jsonPath).toPath()), StandardCharsets.UTF_8);
                 JSONObject jsonData = new JSONObject(json);
                 JSONArray categories = jsonData.getJSONArray("categories");
+                
+                Log.d(TAG, "Looking for category: " + categoryName + ", folder: " + folderName);
 
                 for (int i = 0; i < categories.length(); i++) {
                     JSONObject cat = categories.getJSONObject(i);
-                    if (cat.getString("name").equals(categoryName)) {
+                    String currentCategoryName = cat.getString("name");
+                    Log.d(TAG, "Checking category: " + currentCategoryName);
+                    
+                    if (currentCategoryName.equals(categoryName)) {
                         JSONArray folders = cat.getJSONArray("folders");
+                        Log.d(TAG, "Found category, folders count: " + folders.length());
+                        
                         for (int j = 0; j < folders.length(); j++) {
                             JSONObject folder = folders.getJSONObject(j);
-                            if (folder.getString("name").equals(folderName)) {
+                            String currentFolderName = folder.getString("name");
+                            Log.d(TAG, "Checking folder: " + currentFolderName);
+                            
+                            if (currentFolderName.equals(folderName)) {
                                 JSONArray files = folder.getJSONArray("files");
+                                Log.d(TAG, "Found folder, files count: " + files.length());
+                                
                                 for (int k = 0; k < files.length(); k++) {
                                     JSONObject fileObj = files.getJSONObject(k);
                                     String title = fileObj.getString("title");
@@ -73,9 +85,15 @@ public class RadioListActivity extends AppCompatActivity {
                         break;
                     }
                 }
+                
+                Log.d(TAG, "Total files loaded: " + titles.size());
+                if (titles.isEmpty()) {
+                    Log.w(TAG, "WARNING: No files loaded! Category: " + categoryName + ", Folder: " + folderName);
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Error loading files", e);
-                Toast.makeText(this, "Error loading files", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+                Toast.makeText(this, "Error loading files: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         }
 

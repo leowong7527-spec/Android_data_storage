@@ -91,15 +91,21 @@ public class RadioCategoryActivity extends AppCompatActivity implements RadioCat
         try {
             JSONArray categories = jsonData.getJSONArray("categories");
             List<String> categoryNames = new ArrayList<>();
+            Log.d(TAG, "Loading categories, total count: " + categories.length());
+            
             for (int i = 0; i < categories.length(); i++) {
-                categoryNames.add(categories.getJSONObject(i).getString("name"));
+                String name = categories.getJSONObject(i).getString("name");
+                categoryNames.add(name);
+                Log.d(TAG, "Added category: " + name);
             }
 
+            Log.d(TAG, "Total categories loaded: " + categoryNames.size());
             RadioCategoryAdapter adapter = new RadioCategoryAdapter(categoryNames, this);
             recyclerView.setAdapter(adapter);
         } catch (JSONException e) {
             Log.e(TAG, "Error loading categories", e);
-            Toast.makeText(this, "Error loading categories", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+            Toast.makeText(this, "Error loading categories: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

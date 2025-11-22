@@ -95,18 +95,13 @@ public class HomeActivity extends AppCompatActivity {
 
     private void ensureFile(String filename, String url) {
         File file = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), filename);
-        if (!file.exists()) {
-            long id = downloadWithDownloadManager(url, filename);
-            if (filename.contains("mp3")) mp3JsonDownloadId = id;
-            else if (filename.equals("data.json")) dataJsonDownloadId = id;
-            else if (filename.contains("comic")) comicJsonDownloadId = id;
-            else if (filename.contains("photo")) photoJsonDownloadId = id;
-        } else {
-            if (filename.contains("mp3")) isMp3DownloadComplete = true;
-            else if (filename.equals("data.json")) isBookDownloadComplete = true;
-            else if (filename.contains("comic")) isComicDownloadComplete = true;
-            else if (filename.contains("photo")) isPhotoDownloadComplete = true;
-        }
+        // Always download to ensure latest version
+        long id = downloadWithDownloadManager(url, filename);
+        if (filename.contains("mp3")) mp3JsonDownloadId = id;
+        else if (filename.equals("data.json")) dataJsonDownloadId = id;
+        else if (filename.contains("comic")) comicJsonDownloadId = id;
+        else if (filename.contains("photo")) photoJsonDownloadId = id;
+        Log.d(TAG, "Scheduled download for: " + filename);
     }
 
     private long downloadWithDownloadManager(String url, String filename) {
