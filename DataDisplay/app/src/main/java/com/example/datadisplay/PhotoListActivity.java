@@ -58,9 +58,10 @@ public class PhotoListActivity extends AppCompatActivity implements PhotoGridAda
         recyclerView.setAdapter(adapter);
 
         folderName = getIntent().getStringExtra("folder_name");
+        String categoryName = getIntent().getStringExtra("category_name");
         jsonPath   = getIntent().getStringExtra("json_path");
 
-        Log.d(TAG, "onCreate: folderName=" + folderName + ", jsonPath=" + jsonPath);
+        Log.d(TAG, "🧭 onCreate route entry | category_name=" + categoryName + " | folder_name=" + folderName + " | json_path=" + jsonPath);
 
         loadImagesFromJson(jsonPath, folderName);
 
@@ -136,6 +137,7 @@ public class PhotoListActivity extends AppCompatActivity implements PhotoGridAda
         Intent intent = new Intent(PhotoListActivity.this, ImagePagerActivity.class);
         intent.putStringArrayListExtra("image_urls", new ArrayList<>(allImages));
         intent.putExtra("start_position", position);
+        Log.d(TAG, "🧭 Click image -> ImagePagerActivity | position=" + position + " | total_images=" + allImages.size());
         startActivity(intent);
     }
 

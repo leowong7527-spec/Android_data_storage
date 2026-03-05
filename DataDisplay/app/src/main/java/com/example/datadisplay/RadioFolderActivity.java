@@ -23,6 +23,8 @@ import java.util.List;
 
 public class RadioFolderActivity extends AppCompatActivity implements RadioFolderAdapter.OnFolderClickListener {
 
+    private static final String TAG = "RadioFolderActivity";
+
     private List<String> folderNames;
     private String categoryName;
     private String jsonPath;
@@ -37,6 +39,7 @@ public class RadioFolderActivity extends AppCompatActivity implements RadioFolde
 
         categoryName = getIntent().getStringExtra("category");
         jsonPath = getIntent().getStringExtra("json_path");
+        Log.d(TAG, "🧭 onCreate route entry | category=" + categoryName + " | json_path=" + jsonPath);
 
         folderNames = new ArrayList<>();
 
@@ -46,24 +49,24 @@ public class RadioFolderActivity extends AppCompatActivity implements RadioFolde
                 JSONObject jsonData = new JSONObject(json);
                 JSONArray categories = jsonData.getJSONArray("categories");
 
-                Log.d("RadioFolderActivity", "Looking for category: " + categoryName);
+                Log.d(TAG, "Looking for category: " + categoryName);
                 
                 for (int i = 0; i < categories.length(); i++) {
                     JSONObject cat = categories.getJSONObject(i);
                     if (cat.getString("name").equals(categoryName)) {
                         JSONArray folders = cat.getJSONArray("folders");
-                        Log.d("RadioFolderActivity", "Found " + folders.length() + " folders in category");
+                        Log.d(TAG, "Found " + folders.length() + " folders in category");
                         
                         for (int j = 0; j < folders.length(); j++) {
                             String folderName = folders.getJSONObject(j).getString("name");
                             folderNames.add(folderName);
-                            Log.d("RadioFolderActivity", "Added folder: " + folderName);
+                            Log.d(TAG, "Added folder: " + folderName);
                         }
                         break;
                     }
                 }
             } catch (Exception e) {
-                Log.e("RadioFolderActivity", "Error loading folders", e);
+                Log.e(TAG, "Error loading folders", e);
                 e.printStackTrace();
                 Toast.makeText(this, "Error loading folders: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
@@ -79,6 +82,7 @@ public class RadioFolderActivity extends AppCompatActivity implements RadioFolde
         intent.putExtra("category", categoryName);
         intent.putExtra("folder", folderName);
         intent.putExtra("json_path", jsonPath); // ✅ pass path only
+        Log.d(TAG, "🧭 Click folder -> RadioListActivity | category=" + categoryName + " | folder=" + folderName + " | json_path=" + jsonPath);
         startActivity(intent);
     }
 }

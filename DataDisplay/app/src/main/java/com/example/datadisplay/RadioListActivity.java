@@ -107,6 +107,7 @@ public class RadioListActivity extends AppCompatActivity {
                 intent.putExtra("url", urls.get(position));
                 intent.putStringArrayListExtra("allUrls", new ArrayList<>(urls));
                 intent.putStringArrayListExtra("allTitles", new ArrayList<>(titles));
+                Log.d(TAG, "🧭 Click file -> RadioDetailActivity | title=" + titles.get(position) + " | url=" + urls.get(position));
                 startActivity(intent);
             } else {
                 Log.w(TAG, "Invalid position: " + position + ", max: " + titles.size());

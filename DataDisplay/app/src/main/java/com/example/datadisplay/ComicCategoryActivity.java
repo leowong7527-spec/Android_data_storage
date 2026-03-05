@@ -45,6 +45,9 @@ public class ComicCategoryActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.categoryRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        String fromPath = getIntent().getStringExtra("json_path");
+        Log.d(TAG, "🧭 onCreate route entry | json_path=" + fromPath);
+
         // Use external files dir for consistency with HomeActivity
         cacheFile = new File(getExternalFilesDir(null), "comic_data.json");
 
@@ -113,6 +116,7 @@ public class ComicCategoryActivity extends AppCompatActivity {
                 Intent intent = new Intent(ComicCategoryActivity.this, ComicFolderActivity.class);
                 intent.putExtra("category_name", category.name);
                 intent.putExtra("json_path", cacheFile.getAbsolutePath());
+                Log.d(TAG, "🧭 Click category -> ComicFolderActivity | category_name=" + category.name + " | json_path=" + cacheFile.getAbsolutePath());
                 startActivity(intent);
             });
 

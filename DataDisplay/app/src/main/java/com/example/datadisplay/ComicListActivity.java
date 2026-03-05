@@ -43,9 +43,10 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
         recyclerView.setAdapter(adapter);
 
         String folderName = getIntent().getStringExtra("folder_name");
+        String categoryName = getIntent().getStringExtra("category_name");
         String jsonPath   = getIntent().getStringExtra("json_path");
 
-        Log.d(TAG, "onCreate: folderName=" + folderName + ", jsonPath=" + jsonPath);
+        Log.d(TAG, "🧭 onCreate route entry | category_name=" + categoryName + " | folder_name=" + folderName + " | json_path=" + jsonPath);
 
         // Load JSON + prefetch in background
         Executors.newSingleThreadExecutor().execute(() -> {
@@ -86,6 +87,7 @@ public class ComicListActivity extends AppCompatActivity implements ComicGridAda
         Intent intent = new Intent(this, PhotoActivity.class);
         intent.putStringArrayListExtra("images", new ArrayList<>(imageUrls));
         intent.putExtra("position", position);
+        Log.d(TAG, "🧭 Click comic image -> PhotoActivity | position=" + position + " | url=" + imageUrl);
         startActivity(intent);
     }
 

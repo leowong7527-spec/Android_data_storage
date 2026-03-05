@@ -32,6 +32,9 @@
             android:drawableLeft="@drawable/ic_search"
             android:drawablePadding="8dp"
             android:hint="🔍 搜尋歌曲、書籍、漫畫、照片..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
             android:paddingLeft="16dp"
             android:paddingRight="16dp"
             android:textSize="14sp" />

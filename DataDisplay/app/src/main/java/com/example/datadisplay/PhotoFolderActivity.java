@@ -44,6 +44,8 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
         jsonPath = getIntent().getStringExtra("json_path");
         String folderName = getIntent().getStringExtra("folder_name");
 
+        Log.d(TAG, "🧭 onCreate route entry | category_name=" + categoryName + " | folder_name=" + folderName + " | json_path=" + jsonPath);
+
         loadFolders(jsonPath, categoryName, folderName);
     }
 
@@ -80,11 +82,22 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
                         folderList.addAll(category.folders != null ? category.folders : new ArrayList<>());
                     } else {
                         PhotoFolder current = findFolderByName(category.folders, folderName);
-                        if (current != null && current.folders != null) {
+                        if (current == null) {
+                            Snackbar.make(recyclerView, "Folder not found: " + folderName, Snackbar.LENGTH_LONG).show();
+                        } else if (current.folders != null && !current.folders.isEmpty()) {
                             folderList.addAll(current.folders);
                             Log.d(TAG, "Loaded subfolder: " + current.name + " with " + folderList.size() + " children");
+                        } else if (current.images != null && !current.images.isEmpty()) {
+                            Intent intent = new Intent(this, PhotoListActivity.class);
+                            intent.putExtra("category_name", categoryName);
+                            intent.putExtra("folder_name", current.name);
+                            intent.putExtra("json_path", jsonPath);
+                            Log.d(TAG, "🧭 Auto route leaf folder -> PhotoListActivity | category_name=" + categoryName + " | folder_name=" + current.name + " | json_path=" + jsonPath);
+                            startActivity(intent);
+                            finish();
+                            return;
                         } else {
-                            Snackbar.make(recyclerView, "Folder not found: " + folderName, Snackbar.LENGTH_LONG).show();
+                            Snackbar.make(recyclerView, "This folder is empty", Snackbar.LENGTH_LONG).show();
                         }
                     }
                     break;
@@ -117,12 +130,14 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
                     intent.putExtra("category_name", categoryName);
                     intent.putExtra("folder_name", clicked.name);
                     intent.putExtra("json_path", jsonPath);
+                    Log.d(TAG, "🧭 Click folder -> PhotoFolderActivity | category_name=" + categoryName + " | folder_name=" + clicked.name + " | json_path=" + jsonPath);
                     startActivity(intent);
                 } else if (clicked.images != null && !clicked.images.isEmpty()) {
                     Intent intent = new Intent(this, PhotoListActivity.class);
                     intent.putExtra("category_name", categoryName);
                     intent.putExtra("folder_name", clicked.name);
                     intent.putExtra("json_path", jsonPath);
+                    Log.d(TAG, "🧭 Click folder -> PhotoListActivity | category_name=" + categoryName + " | folder_name=" + clicked.name + " | json_path=" + jsonPath);
                     startActivity(intent);
                 } else {
                     Snackbar.make(recyclerView, "This folder is empty", Snackbar.LENGTH_LONG).show();

@@ -56,13 +56,19 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
                         folderList = category.folders;
                         Log.d(TAG, "Loaded top-level category: " + category.name + " with " + folderList.size() + " folders");
                     } else {
-                        // Find the matching subfolder
-                        for (PhotoFolder folder : category.folders) {
-                            if (folder.name.equals(folderName)) {
-                                folderList = folder.folders != null ? folder.folders : new ArrayList<>();
-                                Log.d(TAG, "Loaded subfolder: " + folder.name + " with " + folderList.size() + " children");
-                                break;
-                            }
+                        PhotoFolder folder = findFolderByName(category.folders, folderName);
+                        if (folder != null && folder.folders != null && !folder.folders.isEmpty()) {
+                            folderList = folder.folders;
+                            Log.d(TAG, "Loaded subfolder: " + folder.name + " with " + folderList.size() + " children");
+                        } else if (folder != null && folder.images != null && !folder.images.isEmpty()) {
+                            Intent intent = new Intent(this, ComicListActivity.class);
+                            intent.putExtra("category_name", categoryName);
+                            intent.putExtra("folder_name", folder.name);
+                            intent.putExtra("json_path", jsonPath);
+                            Log.d(TAG, "🧭 Auto route leaf folder -> ComicListActivity | category_name=" + categoryName + " | folder_name=" + folder.name + " | json_path=" + jsonPath);
+                            startActivity(intent);
+                            finish();
+                            return;
                         }
                     }
                     break;
@@ -82,29 +88,51 @@ public class ComicFolderActivity extends AppCompatActivity implements PhotoFolde
         if (comicData != null && comicData.categories != null) {
             for (PhotoCategory category : comicData.categories) {
                 if (category.name.equals(categoryName) && category.folders != null) {
-                    for (PhotoFolder folder : category.folders) {
-                        if (folder.name.equals(folderName)) {
-                            if (folder.folders != null && !folder.folders.isEmpty()) {
-                                // ✅ Has subfolders → open ComicFolderActivity again
-                                Intent intent = new Intent(this, ComicFolderActivity.class);
-                                intent.putExtra("category_name", categoryName);
-                                intent.putExtra("folder_name", folder.name);
-                                intent.putExtra("json_path", jsonPath);
-                                startActivity(intent);
-                            } else {
-                                // ✅ No subfolders → open ComicListActivity
-                                Intent intent = new Intent(this, ComicListActivity.class);
-                                intent.putExtra("category_name", categoryName);
-                                intent.putExtra("folder_name", folder.name);
-                                intent.putExtra("json_path", jsonPath);
-                                startActivity(intent);
-                            }
-                            return;
-                        }
+                    PhotoFolder folder = findFolderByName(category.folders, folderName);
+                    if (folder == null) {
+                        return;
                     }
+
+                    if (folder.folders != null && !folder.folders.isEmpty()) {
+                        // ✅ Has subfolders → open ComicFolderActivity again
+                        Intent intent = new Intent(this, ComicFolderActivity.class);
+                        intent.putExtra("category_name", categoryName);
+                        intent.putExtra("folder_name", folder.name);
+                        intent.putExtra("json_path", jsonPath);
+                        Log.d(TAG, "🧭 Click folder -> ComicFolderActivity | category_name=" + categoryName + " | folder_name=" + folder.name + " | json_path=" + jsonPath);
+                        startActivity(intent);
+                    } else {
+                        // ✅ No subfolders → open ComicListActivity
+                        Intent intent = new Intent(this, ComicListActivity.class);
+                        intent.putExtra("category_name", categoryName);
+                        intent.putExtra("folder_name", folder.name);
+                        intent.putExtra("json_path", jsonPath);
+                        Log.d(TAG, "🧭 Click folder -> ComicListActivity | category_name=" + categoryName + " | folder_name=" + folder.name + " | json_path=" + jsonPath);
+                        startActivity(intent);
+                    }
+                    return;
                 }
             }
         }
+    }
+
+    private PhotoFolder findFolderByName(List<PhotoFolder> folders, String targetName) {
+        if (folders == null) {
+            return null;
+        }
+
+        for (PhotoFolder folder : folders) {
+            if (targetName.equals(folder.name)) {
+                return folder;
+            }
+
+            PhotoFolder found = findFolderByName(folder.folders, targetName);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     // ✅ Utility: safely load JSON into PhotoData

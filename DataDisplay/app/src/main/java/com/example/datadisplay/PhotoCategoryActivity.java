@@ -2,6 +2,7 @@ package com.example.datadisplay;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,6 +24,8 @@ import java.util.concurrent.Executors;
 
 public class PhotoCategoryActivity extends AppCompatActivity {
 
+    private static final String TAG = "PhotoCategoryActivity";
+
     private RecyclerView recyclerView;
     private File cacheFile;
 
@@ -35,6 +38,7 @@ public class PhotoCategoryActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         String jsonPath = getIntent().getStringExtra("json_path");
+        Log.d(TAG, "🧭 onCreate route entry | json_path=" + jsonPath);
         if (jsonPath != null) {
             cacheFile = new File(jsonPath);
             loadCategories();
@@ -79,6 +83,7 @@ public class PhotoCategoryActivity extends AppCompatActivity {
             Intent intent = new Intent(PhotoCategoryActivity.this, PhotoFolderActivity.class);
             intent.putExtra("category_name", category.name);
             intent.putExtra("json_path", cacheFile.getAbsolutePath());
+            Log.d(TAG, "🧭 Click category -> PhotoFolderActivity | category_name=" + category.name + " | json_path=" + cacheFile.getAbsolutePath());
             startActivity(intent);
         });
 

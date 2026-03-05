@@ -12,6 +12,8 @@ import com.google.android.material.navigation.NavigationView;
 
 public class BookDetailActivity extends AppCompatActivity {
 
+    private static final String TAG = "BookDetailActivity";
+
     TextView bookDetailText;
 
     @Override
@@ -22,19 +24,36 @@ public class BookDetailActivity extends AppCompatActivity {
         bookDetailText = findViewById(R.id.bookDetailText);
 
         // Get values passed from BookActivity
+        String title = getIntent().getStringExtra("title");
         String name = getIntent().getStringExtra("name");
         String author = getIntent().getStringExtra("author");
         String content = getIntent().getStringExtra("content");
         String tag = getIntent().getStringExtra("tag");
 
+        String displayTitle = (title != null && !title.trim().isEmpty()) ? title : name;
+        if (displayTitle == null) {
+            displayTitle = "Unknown";
+        }
+        if (author == null) {
+            author = "Unknown";
+        }
+        if (content == null) {
+            content = "";
+        }
+        if (tag == null) {
+            tag = "General";
+        }
+
+        Log.d(TAG, "🧭 onCreate route entry | title=" + displayTitle + " | author=" + author + " | tag=" + tag);
+
         // 🔍 Debug logs
-        Log.d("BOOK_DETAIL", "Received name: " + name);
-        Log.d("BOOK_DETAIL", "Received author: " + author);
-        Log.d("BOOK_DETAIL", "Received tag: " + tag);
-        Log.d("BOOK_DETAIL", "Received content: " + content);
+        Log.d(TAG, "Received title: " + displayTitle);
+        Log.d(TAG, "Received author: " + author);
+        Log.d(TAG, "Received tag: " + tag);
+        Log.d(TAG, "Received content: " + content);
 
         // Build details string
-        String details = "Book name: " + name +
+        String details = "Book name: " + displayTitle +
                 "\nAuthor: " + author +
                 "\nTag: " + tag +
                 "\n\n" + content;
@@ -43,7 +62,7 @@ public class BookDetailActivity extends AppCompatActivity {
         bookDetailText.setSingleLine(false);
         bookDetailText.setText(details);
 
-        Log.d("BOOK_DETAIL", "Displayed details successfully.");
+        Log.d(TAG, "Displayed details successfully.");
 
         DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
         NavigationView navigationView = findViewById(R.id.navigationView);

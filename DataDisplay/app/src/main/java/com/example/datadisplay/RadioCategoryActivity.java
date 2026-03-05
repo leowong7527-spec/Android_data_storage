@@ -41,6 +41,7 @@ public class RadioCategoryActivity extends AppCompatActivity implements RadioCat
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         jsonPath = getIntent().getStringExtra("json_path");
+        Log.d(TAG, "🧭 onCreate route entry | json_path=" + jsonPath);
         String json = null;
 
         if (jsonPath != null) {
@@ -120,6 +121,7 @@ public class RadioCategoryActivity extends AppCompatActivity implements RadioCat
         Intent intent = new Intent(this, RadioFolderActivity.class);
         intent.putExtra("category", categoryName);
         intent.putExtra("json_path", jsonPath); // ✅ pass path only
+        Log.d(TAG, "🧭 Click category -> RadioFolderActivity | category=" + categoryName + " | json_path=" + jsonPath);
         startActivity(intent);
     }
 }

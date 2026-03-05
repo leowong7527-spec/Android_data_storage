@@ -35,6 +35,8 @@ import java.nio.charset.StandardCharsets;
 
 public class BookActivity extends AppCompatActivity {
 
+    private static final String TAG = "BookActivity";
+
     ListView listView;
     ArrayList<String> userList = new ArrayList<>();
     ArrayAdapter<String> adapter;
@@ -63,6 +65,7 @@ public class BookActivity extends AppCompatActivity {
 
         // ✅ Get the file path passed from HomeActivity
         String jsonPath = getIntent().getStringExtra("json_path");
+        Log.d(TAG, "🧭 onCreate route entry | json_path=" + jsonPath);
         if (jsonPath != null) {
             File jsonFile = new File(jsonPath);
             if (jsonFile.exists()) {
@@ -119,10 +122,12 @@ public class BookActivity extends AppCompatActivity {
                     }
 
                     Intent intent = new Intent(BookActivity.this, BookDetailActivity.class);
+                    intent.putExtra("title", name);
                     intent.putExtra("name", name);
                     intent.putExtra("author", author);
                     intent.putExtra("content", content);
                     intent.putExtra("tag", tagValue);
+                    Log.d(TAG, "🧭 Click book item -> BookDetailActivity | name=" + name + " | author=" + author + " | tag=" + tagValue);
                     startActivity(intent);
 
                 } catch (Exception e) {
