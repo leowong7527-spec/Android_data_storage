@@ -24,6 +24,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewParent;
 import android.view.inputmethod.InputMethodManager;
@@ -536,6 +537,7 @@ public class HomeActivity extends AppCompatActivity {
                 R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
+        ensureGamesMenuItem();
 
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -559,9 +561,24 @@ public class HomeActivity extends AppCompatActivity {
             } else if (id == R.id.nav_comics) {
                 logClickAction("drawer", "comics");
                 navigateToCategory("comic_data.json", ComicCategoryActivity.class, "comic");
+            } else if (id == R.id.nav_games) {
+                logClickAction("drawer", "games");
+                Intent gamesIntent = new Intent(this, GameHomeActivity.class);
+                logNavigationDirection("GameHomeActivity", "drawer", null, gamesIntent);
+                startActivity(gamesIntent);
             }
             return true;
         });
+    }
+
+    private void ensureGamesMenuItem() {
+        if (navigationView == null) {
+            return;
+        }
+        Menu menu = navigationView.getMenu();
+        if (menu.findItem(R.id.nav_games) == null) {
+            menu.add(Menu.NONE, R.id.nav_games, 50, "Games").setIcon(R.drawable.ic_home);
+        }
     }
 
     /**

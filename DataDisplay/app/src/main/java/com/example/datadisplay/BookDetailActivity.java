@@ -3,6 +3,7 @@ package com.example.datadisplay;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -66,6 +67,7 @@ public class BookDetailActivity extends AppCompatActivity {
 
         DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
         NavigationView navigationView = findViewById(R.id.navigationView);
+        ensureGamesMenuItem(navigationView);
 
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -75,11 +77,23 @@ public class BookDetailActivity extends AppCompatActivity {
                 startActivity(new Intent(this, BookActivity.class));
             } else if (id == R.id.nav_photos) {
                 startActivity(new Intent(this, PhotoActivity.class));
+            } else if (id == R.id.nav_games) {
+                startActivity(new Intent(this, GameHomeActivity.class));
             } else if (id == R.id.nav_settings) {
 
             }
             drawerLayout.closeDrawers();
             return true;
         });
+    }
+
+    private void ensureGamesMenuItem(NavigationView navigationView) {
+        if (navigationView == null) {
+            return;
+        }
+        Menu menu = navigationView.getMenu();
+        if (menu.findItem(R.id.nav_games) == null) {
+            menu.add(Menu.NONE, R.id.nav_games, 50, "Games").setIcon(R.drawable.ic_home);
+        }
     }
 }

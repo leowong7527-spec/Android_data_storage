@@ -37,4 +37,28 @@
     <string name="nav_header_subtitle">Content Management</string>
     <string name="nav_header_desc">Navigation header</string>
 
+    <string name="games_title">Games</string>
+    <string name="games_subtitle">Choose a game to play offline.</string>
+    <string name="snake_game_title">Snake</string>
+    <string name="snake_game_desc">Classic offline snake with swipe + arrows.</string>
+    <string name="snake_title">Snake</string>
+    <string name="snake_start_game">Start Game</string>
+    <string name="snake_high_score_text">High Score: %1$d</string>
+    <string name="snake_score_text">Score: %1$d</string>
+    <string name="snake_main_menu">Main Menu</string>
+    <string name="snake_controls_hint">Swipe on canvas or use arrow buttons</string>
+    <string name="snake_game_over">Game Over! Score: %1$d</string>
+    <string name="snake_new_high_score">New High Score: %1$d</string>
+    <string name="snake_up">↑</string>
+    <string name="snake_down">↓</string>
+    <string name="snake_left">←</string>
+    <string name="snake_right">→</string>
+    <string name="tictactoe_game_title">Tic-Tac-Toe</string>
+    <string name="tictactoe_game_desc">Popular offline 2-player classic.</string>
+    <string name="tictactoe_title">Tic-Tac-Toe</string>
+    <string name="tictactoe_turn_text">Player %1$s turn</string>
+    <string name="tictactoe_win_text">Player %1$s wins!</string>
+    <string name="tictactoe_draw_text">Draw game</string>
+    <string name="tictactoe_restart">Restart</string>
+
 </resources>

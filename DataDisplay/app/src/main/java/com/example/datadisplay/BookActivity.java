@@ -5,6 +5,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -138,6 +139,7 @@ public class BookActivity extends AppCompatActivity {
 
         DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
         NavigationView navigationView = findViewById(R.id.navigationView);
+        ensureGamesMenuItem(navigationView);
 
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -147,12 +149,24 @@ public class BookActivity extends AppCompatActivity {
                 drawerLayout.closeDrawers();
             } else if (id == R.id.nav_photos) {
                 startActivity(new Intent(this, PhotoActivity.class));
+            } else if (id == R.id.nav_games) {
+                startActivity(new Intent(this, GameHomeActivity.class));
             } else if (id == R.id.nav_settings) {
                 // TODO: implement settings
             }
             drawerLayout.closeDrawers();
             return true;
         });
+    }
+
+    private void ensureGamesMenuItem(NavigationView navigationView) {
+        if (navigationView == null) {
+            return;
+        }
+        Menu menu = navigationView.getMenu();
+        if (menu.findItem(R.id.nav_games) == null) {
+            menu.add(Menu.NONE, R.id.nav_games, 50, "Games").setIcon(R.drawable.ic_home);
+        }
     }
 
     // Parse JSON directly from file and populate both userList and displayedBooks

@@ -27,6 +27,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DataDisplay" >
         <activity
+            android:name=".SnakeGameActivity"
+            android:exported="false" />
+        <activity
+            android:name=".TicTacToeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".GameHomeActivity"
+            android:exported="false" />
+        <activity
             android:name=".OnlinePhotoBrowsingActivity"
             android:exported="false" />
         <activity
