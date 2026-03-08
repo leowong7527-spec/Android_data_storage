@@ -9,9 +9,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.datadisplay.adapters.PhotoFolderAdapter;
+import com.example.datadisplay.managers.OfflineDownloadManager;
+import com.example.datadisplay.managers.OfflineResourceManager;
 import com.example.datadisplay.models.PhotoCategory;
 import com.example.datadisplay.models.PhotoData;
 import com.example.datadisplay.models.PhotoFolder;
+import com.example.datadisplay.utils.NetworkHelper;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
@@ -31,6 +34,8 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
     private String categoryName;
     private String jsonPath;
     private RecyclerView recyclerView;
+    private OfflineDownloadManager downloadManager;
+    private OfflineResourceManager resourceManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +44,9 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
 
         recyclerView = findViewById(R.id.folderRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        downloadManager = new OfflineDownloadManager(this);
+        resourceManager = new OfflineResourceManager(this);
 
         categoryName = getIntent().getStringExtra("category_name");
         jsonPath = getIntent().getStringExtra("json_path");
@@ -107,6 +115,88 @@ public class PhotoFolderActivity extends AppCompatActivity implements PhotoFolde
 
         PhotoFolderAdapter adapter = new PhotoFolderAdapter(folderList, this);
         recyclerView.setAdapter(adapter);
+        setupLongPressDownload(adapter);
+    }
+
+    private void setupLongPressDownload(PhotoFolderAdapter adapter) {
+        adapter.setOnLongClickListener(folderName -> {
+            PhotoFolder folder = findFolderInList(folderName);
+            if (folder != null) {
+                downloadFolderTree(folder);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void downloadFolderTree(PhotoFolder folder) {
+        if (!NetworkHelper.isWiFiConnected(this)) {
+            Snackbar.make(recyclerView, "WiFi connection required for batch downloads", Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
+        int totalImages = countImagesRecursive(folder);
+        if (totalImages <= 0) {
+            Snackbar.make(recyclerView, "No images to download", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        File downloadDir = resourceManager.getOfflineDirectory(OfflineResourceManager.ResourceType.PHOTO);
+        Log.d(TAG, "User triggered folder download: " + folder.name);
+        Log.d(TAG, "Images to download: " + totalImages);
+        Log.d(TAG, "Download location: " + downloadDir.getAbsolutePath());
+
+        List<Long> downloadIds = new ArrayList<>();
+        enqueueFolderDownloadsRecursive(folder, OfflineResourceManager.ResourceType.PHOTO, downloadIds);
+
+        if (!downloadIds.isEmpty()) {
+            Snackbar.make(recyclerView,
+                    "Downloading " + downloadIds.size() + " images from " + folder.name,
+                    Snackbar.LENGTH_LONG).show();
+        } else {
+            Snackbar.make(recyclerView, "Failed to start downloads", Snackbar.LENGTH_SHORT).show();
+        }
+    }
+
+    private void enqueueFolderDownloadsRecursive(PhotoFolder folder,
+                                                 OfflineResourceManager.ResourceType type,
+                                                 List<Long> downloadIds) {
+        if (folder == null) {
+            return;
+        }
+
+        if (folder.images != null && !folder.images.isEmpty()) {
+            downloadIds.addAll(downloadManager.downloadFolder(folder.name, folder.images, type, true));
+        }
+
+        if (folder.folders != null) {
+            for (PhotoFolder child : folder.folders) {
+                enqueueFolderDownloadsRecursive(child, type, downloadIds);
+            }
+        }
+    }
+
+    private int countImagesRecursive(PhotoFolder folder) {
+        if (folder == null) {
+            return 0;
+        }
+
+        int total = folder.images != null ? folder.images.size() : 0;
+        if (folder.folders != null) {
+            for (PhotoFolder child : folder.folders) {
+                total += countImagesRecursive(child);
+            }
+        }
+        return total;
+    }
+
+    private PhotoFolder findFolderInList(String folderName) {
+        for (PhotoFolder folder : folderList) {
+            if (folder.name.equals(folderName)) {
+                return folder;
+            }
+        }
+        return null;
     }
 
     @Override

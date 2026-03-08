@@ -10,6 +10,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.datadisplay.adapters.RadioFileAdapter;
+import com.example.datadisplay.managers.OfflineDownloadManager;
+import com.example.datadisplay.managers.OfflineResourceManager;
+import com.example.datadisplay.managers.OfflineResourceManager.ResourceType;
+import com.example.datadisplay.utils.NetworkHelper;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -30,6 +34,8 @@ public class RadioListActivity extends AppCompatActivity {
     private String categoryName;
     private String folderName;
     private String jsonPath;
+    private OfflineDownloadManager downloadManager;
+    private OfflineResourceManager resourceManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +50,9 @@ public class RadioListActivity extends AppCompatActivity {
 
         titles = new ArrayList<>();
         urls = new ArrayList<>();
+
+        downloadManager = new OfflineDownloadManager(this);
+        resourceManager = new OfflineResourceManager(this);
 
         if (jsonPath != null) {
             try {
@@ -113,6 +122,39 @@ public class RadioListActivity extends AppCompatActivity {
                 Log.w(TAG, "Invalid position: " + position + ", max: " + titles.size());
             }
         });
+
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            if (position >= 0 && position < titles.size() && position < urls.size()) {
+                downloadAudioFile(urls.get(position), titles.get(position));
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void downloadAudioFile(String url, String title) {
+        if (resourceManager.isAvailableOffline(url)) {
+            Toast.makeText(this, "Already downloaded: " + title, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!NetworkHelper.isWiFiConnected(this)) {
+            Toast.makeText(this, "WiFi connection required for downloads", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        File downloadDir = resourceManager.getOfflineDirectory(OfflineResourceManager.ResourceType.AUDIO);
+        Log.d(TAG, "User triggered audio download: " + title);
+        Log.d(TAG, "URL: " + url);
+        Log.d(TAG, "Download location: " + downloadDir.getAbsolutePath());
+
+        long downloadId = downloadManager.downloadResource(url, title, ResourceType.AUDIO, true);
+
+        if (downloadId != -1) {
+            Toast.makeText(this, "Download started: " + title, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Failed to start download", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

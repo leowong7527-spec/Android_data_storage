@@ -44,6 +44,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.example.datadisplay.managers.OfflineDownloadManager;
+import com.example.datadisplay.utils.DataUrlManager;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.gson.Gson;
@@ -105,6 +107,9 @@ public class HomeActivity extends AppCompatActivity {
     private Class<?> pendingNavigationActivity = null;
     private Article pendingSearchResult = null;
 
+    private DataUrlManager dataUrlManager;
+    private static OfflineDownloadManager offlineDownloadManager;
+
     private final Map<String, Class<?>> searchActivityMap = new HashMap<>();
     private volatile int latestSearchRequestId = 0;
     private volatile String latestNormalizedSearchQuery = "";
@@ -119,6 +124,13 @@ public class HomeActivity extends AppCompatActivity {
         Log.e(TAG, "SEARCH_DIAG_BUILD | " + SEARCH_DIAG_BUILD);
 
         try {
+            dataUrlManager = new DataUrlManager(this);
+
+            if (offlineDownloadManager == null) {
+                offlineDownloadManager = new OfflineDownloadManager(this);
+                Log.d(TAG, "OfflineDownloadManager initialized");
+            }
+
             // Check and request storage permissions (non-blocking)
             Log.d(TAG, "🔐 Checking storage permissions...");
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -161,6 +173,10 @@ public class HomeActivity extends AppCompatActivity {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     Log.d(TAG, "📥 Download complete broadcast received");
+                    long downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                    if (offlineDownloadManager != null && downloadId != -1) {
+                        offlineDownloadManager.onDownloadComplete(downloadId);
+                    }
                     onDownloadComplete(intent);
                 }
             };
@@ -171,14 +187,10 @@ public class HomeActivity extends AppCompatActivity {
 
             // Download JSON files BEFORE initializing views
             Log.d(TAG, "🌐 Starting JSON file downloads...");
-            ensureFile("mp3_data.json", 
-                "https://raw.githubusercontent.com/leowong7527-spec/Data-Storage-/main/mp3_data.json");
-            ensureFile("data.json", 
-                "https://raw.githubusercontent.com/leowong7527-spec/Data-Storage-/main/data.json");
-            ensureFile("comic_data.json", 
-                "https://raw.githubusercontent.com/leowong7527-spec/Data-Storage-/main/comic_data.json");
-            ensureFile("photo_data.json", 
-                "https://raw.githubusercontent.com/leowong7527-spec/Data-Storage-/main/photo_data.json");
+            ensureFile("mp3_data.json", dataUrlManager.getMp3DownloadUrl());
+            ensureFile("data.json", dataUrlManager.getBookDownloadUrl());
+            ensureFile("comic_data.json", dataUrlManager.getComicDownloadUrl());
+            ensureFile("photo_data.json", dataUrlManager.getPhotoDownloadUrl());
 
             Log.d(TAG, "📋 Initializing views...");
             // Initialize views
@@ -566,6 +578,16 @@ public class HomeActivity extends AppCompatActivity {
                 Intent gamesIntent = new Intent(this, GameHomeActivity.class);
                 logNavigationDirection("GameHomeActivity", "drawer", null, gamesIntent);
                 startActivity(gamesIntent);
+            } else if (id == R.id.nav_offline) {
+                logClickAction("drawer", "offline-content");
+                Intent offlineIntent = new Intent(this, OfflineContentActivity.class);
+                logNavigationDirection("OfflineContentActivity", "drawer", null, offlineIntent);
+                startActivity(offlineIntent);
+            } else if (id == R.id.nav_cached_files) {
+                logClickAction("drawer", "cached-files");
+                Intent cachedIntent = new Intent(this, CachedFilesActivity.class);
+                logNavigationDirection("CachedFilesActivity", "drawer", null, cachedIntent);
+                startActivity(cachedIntent);
             }
             return true;
         });
@@ -2199,13 +2221,19 @@ public class HomeActivity extends AppCompatActivity {
      * 獲取文件的下載 URL
      */
     private String getDownloadUrl(String filename) {
-        String baseUrl = "https://raw.githubusercontent.com/leowong7527-spec/Data-Storage-/main/";
+        if (dataUrlManager == null) {
+            dataUrlManager = new DataUrlManager(this);
+        }
+
         switch (filename) {
             case "mp3_data.json":
+                return dataUrlManager.getMp3DownloadUrl();
             case "data.json":
+                return dataUrlManager.getBookDownloadUrl();
             case "comic_data.json":
+                return dataUrlManager.getComicDownloadUrl();
             case "photo_data.json":
-                return baseUrl + filename;
+                return dataUrlManager.getPhotoDownloadUrl();
             default:
                 return null;
         }

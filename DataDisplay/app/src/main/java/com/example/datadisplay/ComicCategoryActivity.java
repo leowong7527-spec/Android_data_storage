@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.datadisplay.adapters.PhotoCategoryAdapter;
 import com.example.datadisplay.models.PhotoCategory;
 import com.example.datadisplay.models.PhotoData;
+import com.example.datadisplay.utils.DataUrlManager;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
@@ -33,14 +34,16 @@ public class ComicCategoryActivity extends AppCompatActivity {
     private static final String TAG = "ComicCategoryActivity";
 
     private RecyclerView recyclerView;
-    private final String jsonUrl =
-            "https://raw.githubusercontent.com/leowong7527-spec/Android_data_storage/main/comic_data.json";
+    private String jsonUrl;
     private File cacheFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_category); // consider renaming layout
+
+        DataUrlManager dataUrlManager = new DataUrlManager(this);
+        jsonUrl = dataUrlManager.getComicDownloadUrl();
 
         recyclerView = findViewById(R.id.categoryRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));

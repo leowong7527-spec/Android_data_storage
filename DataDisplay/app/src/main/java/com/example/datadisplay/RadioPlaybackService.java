@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Build;
@@ -12,9 +13,14 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
+import android.view.KeyEvent;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 
 import java.util.List;
 import java.util.Random;
@@ -25,6 +31,7 @@ public class RadioPlaybackService extends Service {
 
     public static final String CHANNEL_ID = "RadioPlaybackChannelV2";
     private MediaPlayer mediaPlayer;
+    private MediaSessionCompat mediaSession;
     private List<String> allUrls;
 
     private List<String> allTitles;   // ✅ new
@@ -47,6 +54,143 @@ public class RadioPlaybackService extends Service {
 
     public static final String ACTION_NEXT = "ACTION_NEXT";
     public static final String ACTION_PREVIOUS = "ACTION_PREVIOUS";
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        initializeMediaSession();
+    }
+
+    private void initializeMediaSession() {
+        ComponentName mediaButtonReceiver = new ComponentName(getApplicationContext(), MediaButtonReceiver.class);
+        mediaSession = new MediaSessionCompat(this, "RadioPlaybackService", mediaButtonReceiver, null);
+
+        mediaSession.setCallback(new MediaSessionCompat.Callback() {
+            @Override
+            public boolean onMediaButtonEvent(Intent mediaButtonEvent) {
+                if (mediaButtonEvent == null) {
+                    return super.onMediaButtonEvent(mediaButtonEvent);
+                }
+
+                KeyEvent keyEvent = mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                if (keyEvent == null || keyEvent.getAction() != KeyEvent.ACTION_DOWN) {
+                    return super.onMediaButtonEvent(mediaButtonEvent);
+                }
+
+                int keyCode = keyEvent.getKeyCode();
+                Log.d(TAG, "onMediaButtonEvent keyCode=" + keyCode);
+                switch (keyCode) {
+                    case KeyEvent.KEYCODE_MEDIA_PLAY:
+                        onPlay();
+                        return true;
+                    case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                        onPause();
+                        return true;
+                    case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                    case KeyEvent.KEYCODE_HEADSETHOOK:
+                        togglePlayback();
+                        return true;
+                    case KeyEvent.KEYCODE_MEDIA_NEXT:
+                        onSkipToNext();
+                        return true;
+                    case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                        onSkipToPrevious();
+                        return true;
+                    default:
+                        return super.onMediaButtonEvent(mediaButtonEvent);
+                }
+            }
+
+            @Override
+            public void onPlay() {
+                Log.d(TAG, "MediaSession onPlay");
+                if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+                    mediaPlayer.start();
+                    broadcastStatus(true);
+                    progressHandler.post(progressRunnable);
+                    showMediaNotification(true);
+                    updatePlaybackState();
+                }
+            }
+
+            @Override
+            public void onPause() {
+                Log.d(TAG, "MediaSession onPause");
+                if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                    broadcastStatus(false);
+                    progressHandler.removeCallbacks(progressRunnable);
+                    showMediaNotification(false);
+                    updatePlaybackState();
+                }
+            }
+
+            @Override
+            public void onSkipToNext() {
+                Log.d(TAG, "MediaSession onSkipToNext");
+                playNextTrack();
+            }
+
+            @Override
+            public void onSkipToPrevious() {
+                Log.d(TAG, "MediaSession onSkipToPrevious");
+                playPreviousTrack();
+            }
+
+            @Override
+            public void onSeekTo(long position) {
+                if (mediaPlayer != null) {
+                    mediaPlayer.seekTo((int) position);
+                }
+            }
+        });
+
+        mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        mediaSession.setActive(true);
+        updatePlaybackState();
+    }
+
+    private void updatePlaybackState() {
+        if (mediaSession == null) {
+            return;
+        }
+
+        PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
+                .setActions(PlaybackStateCompat.ACTION_PLAY |
+                        PlaybackStateCompat.ACTION_PAUSE |
+                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
+                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+                        PlaybackStateCompat.ACTION_SEEK_TO);
+
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            stateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
+                    mediaPlayer.getCurrentPosition(), 1.0f);
+        } else {
+            stateBuilder.setState(PlaybackStateCompat.STATE_PAUSED,
+                    mediaPlayer != null ? mediaPlayer.getCurrentPosition() : 0, 1.0f);
+        }
+
+        mediaSession.setPlaybackState(stateBuilder.build());
+    }
+
+    private void updateMediaMetadata() {
+        if (mediaSession == null) {
+            return;
+        }
+
+        MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE,
+                        currentTitle != null ? currentTitle : "Unknown")
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "Radio Stream")
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, currentUrl);
+
+        if (mediaPlayer != null) {
+            metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION,
+                    mediaPlayer.getDuration());
+        }
+
+        mediaSession.setMetadata(metadataBuilder.build());
+    }
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable progressRunnable = new Runnable() {
@@ -85,6 +229,7 @@ public class RadioPlaybackService extends Service {
                         broadcastStatus(true);
                         progressHandler.post(progressRunnable);
                         showMediaNotification(true);
+                        updatePlaybackState();
                     }
                     return START_STICKY;
 
@@ -94,7 +239,12 @@ public class RadioPlaybackService extends Service {
                         broadcastStatus(false);
                         progressHandler.removeCallbacks(progressRunnable);
                         showMediaNotification(false);
+                        updatePlaybackState();
                     }
+                    return START_STICKY;
+
+                case "ACTION_TOGGLE_PLAYBACK":
+                    togglePlayback();
                     return START_STICKY;
 
                 case ACTION_LOOP:
@@ -140,6 +290,25 @@ public class RadioPlaybackService extends Service {
 
         playTrack(currentUrl);
         return START_STICKY;
+    }
+
+    private void togglePlayback() {
+        if (mediaPlayer == null) {
+            return;
+        }
+
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+            broadcastStatus(false);
+            progressHandler.removeCallbacks(progressRunnable);
+            showMediaNotification(false);
+        } else {
+            mediaPlayer.start();
+            broadcastStatus(true);
+            progressHandler.post(progressRunnable);
+            showMediaNotification(true);
+        }
+        updatePlaybackState();
     }
 
     private void playNextTrack() {
@@ -231,6 +400,8 @@ public class RadioPlaybackService extends Service {
                 mp.start();
                 broadcastStatus(true);
                 broadcastTrackChanged(url);
+                updatePlaybackState();
+                updateMediaMetadata();
                 progressHandler.removeCallbacks(progressRunnable);
                 progressHandler.post(progressRunnable);
                 showMediaNotification(true);
@@ -350,6 +521,11 @@ public class RadioPlaybackService extends Service {
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
+        }
+        if (mediaSession != null) {
+            mediaSession.setActive(false);
+            mediaSession.release();
+            mediaSession = null;
         }
         progressHandler.removeCallbacks(progressRunnable);
         super.onDestroy();
